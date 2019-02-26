@@ -1,40 +1,41 @@
-# Plant_ID	
+### Plant_ID	
 Unique ID for a given plant
 
-# Site.ID		
+### Site.ID		
 ID for site at which plant was collected. Not unique
 
-# Tour.ID		ID for the trip on which plant was collected. Not unique
+### Tour.ID		
+ID for the trip on which plant was collected. Not unique
 
-# Latitude	
+### Latitude	
 Latitude at which plant was collected
 
-# Longitude	
+### Longitude	
 Longitude at which plant was collected
 
-# Altitude.x	
+### Altitude.x	
 Altitude (meters) at which plant was collected
 
-# Air.temp	
+### Air.temp	
 Air temperature (measured by xx) at time of collection
 
-# Air.humidity	
+### Air.humidity	
 Air humidity (measured by 
 
-# Soil.temp	
+### Soil.temp	
 Soil temperature (measured by homemade device) at time of collection
 
-# Soil.humidity	
+### Soil.humidity	
 Soil humidity (measured by homemade device) at time of collection
 
-# Pop_size	
+### Pop_size	
 Estimated size of plant population. Estimated roughly by collectors
 
-# HpA_plant	
+### HpA_plant	
 Boolean of whether Hpa was observed on the plant
 
-# HpA_site	
+### HpA_site	
 Boolean of whether Hpa was observed at the site
 
-# Notes	
+### Notes	
 Extraneous notes
