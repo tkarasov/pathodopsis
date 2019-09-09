@@ -15,7 +15,7 @@ conda activate pathodopsis
 And we demultiplexed our multi-multiplexed samples first using the in-house sample-sheet demultiplexing (for the 96-well demultiplexing) and next using barcodes
 
 ```console
-demultiplex_python_call.sh
+demultiplex_16S_non_flashed.sh <input_raw_read_direc> <output_direc>
 ```
 Then to clip barcodes
 ```console
