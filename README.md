@@ -51,7 +51,7 @@ Now we are ready to infer the error models
   ```
   
   Lastly convert ot biom format
-  ```
+  ```console
   convert_dada2_out.R -i \
          seqtab_final.rds -b seqtab.biom.tsv -f seqtab.fasta --taxa_in tax_final.rds
 ```
