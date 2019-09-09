@@ -8,9 +8,6 @@
 # default is to use the script name.
 # -N $name
 #
-# The path used for the standard output stream of the job
-# -o
-#
 # Merge stdout and stderr. The job will create only one output file which
 # contains both the real output and the error messages.
 # -j y
@@ -20,11 +17,16 @@
 #
 # Run job from current working directory
 #$ -cwd
+
 name=$name
+output_direc=$output_direc
 R1=$R1
 R2=$R2
 
+source /ebio/abt6/tkarasov/.bashrc
 
-python /ebio/abt6_projects9/pathodopsis_microbiomes/scripts/16S/demultiplex_16S_non_flashed.py $name $R1 $R2
+conda activate pathodopsis
+
+python /ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/demultiplex_16S_non_flashed.py $name $output_direc $R1 $R2
 
 

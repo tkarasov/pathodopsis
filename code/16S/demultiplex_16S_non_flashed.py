@@ -6,8 +6,9 @@ from re import match
 #usage python demultiplex_16S_non_flashed.sh output_filename R1.fq R2.fq
 
 file_name=sys.argv[1]
-fastq_F_filename=sys.argv[2]
-fastq_R_filename=sys.argv[3]
+outfile_path=sys.argv[2]
+fastq_F_filename=sys.argv[3]
+fastq_R_filename=sys.argv[4]
 
 
 def my_filter(records_forward, records_reverse, file_name):
@@ -38,12 +39,12 @@ def my_filter(records_forward, records_reverse, file_name):
 
     #now write out the parsed files
     for file in list(all_files_R1.keys()):
-        SeqIO.write(all_files_R1[file], "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/demult_python/"+file+"_R1_"+file_name+".fastq", "fastq")
+        SeqIO.write(all_files_R1[file], outfile_path+"/demult_python/"+file+"_R1_"+file_name+".fastq", "fastq")
     for file in list(all_files_R2.keys()):
-        SeqIO.write(all_files_R2[file], "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/demult_python/"+file+"_R2_"+file_name+".fastq", "fastq")
+        SeqIO.write(all_files_R2[file], outfile_path+"/demult_python/"+file+"_R2_"+file_name+".fastq", "fastq")
 
 
-path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/raw_reads/16S/16S_12_2018/"
+#path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/raw_reads/16S/16S_12_2018/"
 
 forward_F1="GACCTACGGGAGGCAGCAG"
 forward_F2="TGACCTACGGGAGGCAGCAG"
