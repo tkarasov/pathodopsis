@@ -19,7 +19,7 @@ demultiplex_16S_non_flashed.sh <input_raw_read_direc> <output_direc>
 ```
 Then to clip barcodes
 ```console
-clip_barcodes_after_python.sh
+clip_barcodes_after_python.sh <output_direc>
 ```
 At this point we have demultiplexed samples with barcodes removed ready for filtering and dada2 sequence analysis. We will use primarily scripts (and slightly modified versions) from the Langille tutorial. First filter reads at a certain truncation length
 
