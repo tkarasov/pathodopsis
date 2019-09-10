@@ -13,5 +13,3 @@ for direc in `ls $read_direc`; do
 	qsub -v name=$name,output_direc=$output_direc,R1=$R1,R2=$R2 /ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/demultiplex_python_call.sh;
 done
 
-#once all of these files are done then call clip_barcodes_after_python.sh to remove barcodes and rename the files
-/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/clip_barcodes_after_python.sh
