@@ -28,8 +28,8 @@ option_list <- list(
               help="Regular expression to match in reverse reads' filenames (default: \"_R2_.*fastq.*\").",
               metavar="PATTERN"),
 
-  make_option(c("--sample_delim"), type="character", default="_",
-              help=paste("Character to split filenames on to determine sample name (default: \"_16S\").",
+  make_option(c("--sample_delim"), type="character", default="_R",
+              help=paste("Character to split filenames on to determine sample name (default: \"_R\").",
               "Sample names are assumed to be field 1 after splitting.", sep=" "),
               metavar="PATTERN"),
 
