@@ -16,20 +16,22 @@ And we demultiplexed our multi-multiplexed samples first using the in-house samp
 
 The demultiplexing and pooling of samples across runs is done in the pipeline detailed here:
 ```
-/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16Sprocess_step1_demultiplex_16S.sh
+/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/process_step1_demultiplex_16S.sh
 ```
 And the dada2 pipeline is here:
 ```
-/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16Sprocess_step2_rundada2_16S.sh
+/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/process_step2_rundada2_16S.sh
 ```
-But Ill describe step-by-step below
+But Ill describe step-by-step below. The first issue is that our samples were demultiplexed into the 96-well format, but we need to demultiplex the nested barcodes within this format. This is accomplished by the following script.
 ```console
 demultiplex_16S_non_flashed.sh <input_raw_read_direc> <output_direc>
 ```
-Then to clip barcodes
+Now we have a nicely demultiplexed directory and we want to remove the barcodes from the fastqs.
 ```console
 clip_barcodes_after_python.sh <output_direc>
 ```
+Depending on whether the sample was sequenced across multiple lanes or not, we will either pool the clipped reads or proceed directly to dada2. Once the samples are ready in fastq form (pooled or not) we will transition to the process_step2 script in which we run dada2.
+##################
 At this point we have demultiplexed samples with barcodes removed ready for filtering and dada2 sequence analysis. We will use primarily scripts (and slightly modified versions) from the Langille tutorial. First filter reads at a certain truncation length
 
 ```console
