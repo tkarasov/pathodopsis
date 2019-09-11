@@ -31,7 +31,7 @@ Now we have a nicely demultiplexed directory and we want to remove the barcodes 
 clip_barcodes_after_python.sh <output_direc>
 ```
 Depending on whether the sample was sequenced across multiple lanes or not, we will either pool the clipped reads or proceed directly to dada2. Once the samples are ready in fastq form (pooled or not) we will transition to the process_step2 script in which we run dada2.
-##################
+
 At this point we have demultiplexed samples with barcodes removed ready for filtering and dada2 sequence analysis. We will use primarily scripts (and slightly modified versions) from the Langille tutorial. First filter reads at a certain truncation length
 
 ```console
