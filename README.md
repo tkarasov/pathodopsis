@@ -12,8 +12,17 @@ We created a conda environment titled pathodopsis
 ```console
 conda activate pathodopsis
 ```
-And we demultiplexed our multi-multiplexed samples first using the in-house sample-sheet demultiplexing (for the 96-well demultiplexing) and next using barcodes
+And we demultiplexed our multi-multiplexed samples first using the in-house sample-sheet demultiplexing (for the 96-well demultiplexing) and next using barcodes.
 
+The demultiplexing and pooling of samples across runs is done in the pipeline detailed here:
+```
+/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16Sprocess_step1_demultiplex_16S.sh
+```
+And the dada2 pipeline is here:
+```
+/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16Sprocess_step2_rundada2_16S.sh
+```
+But Ill describe step-by-step below
 ```console
 demultiplex_16S_non_flashed.sh <input_raw_read_direc> <output_direc>
 ```
