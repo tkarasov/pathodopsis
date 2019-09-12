@@ -35,7 +35,7 @@ Depending on whether the sample was sequenced across multiple lanes or not, we w
 At this point we have demultiplexed samples with barcodes removed ready for filtering and dada2 sequence analysis. We will use primarily scripts (and slightly modified versions) from the Langille tutorial. First filter reads at a certain truncation length
 
 ```console
-dada2_filter.R \
+dada2_filter_tlk.R \
         -f <input folder> --truncLen <trunc_from, trunc_to> --maxN <# N's allowed which should be 0> \
         --maxEE 3,7 --truncQ 2 --threads 9 --f_match _R1_.*fastq.gz \
         --r_match _R2_.*fastq.gz
@@ -43,7 +43,7 @@ dada2_filter.R \
 
 Now we are ready to infer the error models
 ```console
- dada2_inference.R \
+ dada2_inference_tlk.R \
         -f filtered_fastqs/ --seed 1659 -t 9 --verbose --plot_errors
  ```
  
