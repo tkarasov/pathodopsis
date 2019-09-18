@@ -1,4 +1,4 @@
-Tour_ID	Site_ID	Plant_ID	HpA_plant	Albugo	Necrosis	Used_for	Lat	Long	HpA_site	Altitude	rndCoord.lon	rndCoord.lat	ClimateZ
+Tour_ID	Site.ID	Plant_ID	HpA_plant	Albugo	Necrosis	Used_for	Latitude	Longitude	HpA_site	Altitude	rndCoord.lon	rndCoord.lat	ClimateZ
 AAG	P0034	PA0505	0	1	0	M	38.97878	48.55923	0	93	48.75	38.75	Csa
 AAG	P0034	PA0506	0	1	0	M	38.97878	48.55923	0	93	48.75	38.75	Csa
 AAG	P0034	PC0007	0	0	NA	M	38.97878	48.55923	0	93	48.75	38.75	Csa

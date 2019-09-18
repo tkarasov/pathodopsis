@@ -1,3 +1,18 @@
+---
+title: "After Dada2"
+author: "Talia_Karasov"
+date: "9/18/2019"
+output: html_document
+---
+The goal of this script is to take the output from dada2 and create filtered ASV tables.
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width = 12, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE, cache = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
 #library(phyloseq)
 library(dada2)
 library(dplyr)
@@ -13,7 +28,10 @@ library("RColorBrewer")
 library(gplots)
 library(sjstats)
 library(nlme)
+```
 
+
+```{r}
 #path="/Users/tkarasov/work_main"
 
 #choose whether working on home computer or at work
@@ -52,28 +70,35 @@ sample_names(seqtab.nochim)=samples.out
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
                tax_table(taxa))
+```
 
-#remove samples with fewwer than 1000 reads
+#Pruning
+Remove samples with fewwer than 1000 reads
+```{r}
 GP = prune_samples(sample_sums(ps)>=1000, ps)
+rm(ps)
+```
 
-#now for taxa names
+Now for taxa names
+```{r}
 dna <- Biostrings::DNAStringSet(taxa_names(GP))
 names(dna) <- taxa_names(GP)
 GP <- merge_phyloseq(GP, dna)
 taxa_names(GP) <- paste0("ASV", seq(ntaxa(GP)))
+```
+FYI: you can access the sequence by refeseq(GP)
 
-#you can access the sequence by refeseq(GP)
-
-#remove mitochondria
+Remove mitochondria and samples that have fewer than 50 reads in any sample
+```{r}
 mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
 GP = prune_taxa(mito, GP)
-# remove samples that have fewer than 50 reads in any sample
 flist    <- filterfun(kOverA(1, 50))
 GP50 = filter_taxa(GP, flist, TRUE )
-
 qGPr  = transform_sample_counts(GP, function(otu) otu/sum(otu))
+rm(GP)
+```
 
-
+```{r}
 #basic plot
 top20 <- names(sort(taxa_sums(GP50), decreasing=TRUE))[1:20]
 ps.top20 <- transform_sample_counts(GP50, function(OTU) OTU/sum(OTU))
@@ -85,19 +110,37 @@ ord.nmds.bray <- ordinate(GP50.prop, method="NMDS", distance="bray")
 plot_ordination(GP50.prop, ord.nmds.bray, color="TourID", title="Bray NMDS")
 
 plot_richness(GP50.prop, x="Subject", measures=c("Shannon", "Simpson"), color="Clim")
-
+```
 
 # Extract tables
-extracted_GP50 = as(otu_table(GP50), "matrix")
 
-#merge on genus and family 
+```{r}
+extracted_GP50 = as(otu_table(GP50), "matrix")
+```
+
+Merge ASV table on genus and family 
+```{r}
 GP_genus=tax_glom(GP50, "Genus")
 GP_fam=tax_glom(GP50, "Family")
+```
 
-##rename ASV for family
-
+Rename ASV for family and rename duplicates
+```{r}
+dups = which(duplicated(as.character(tax_table(GP_fam)[,5])))
+the_name = paste(as.character(tax_table(GP_fam)[,5])[dups], as.character(dups), sep="_")
+tax_table(GP_fam)[,5][dups] = the_name
+taxa_names(GP_fam) = as.character(tax_table(GP_fam)[,5])
 
 extracted_GP50_family = as(otu_table(GP_fam), "matrix")
+```
+
+#Comparison between metagenome and 16S classification
+
+```{r}
+metagenome_table = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_9_2018_reads.txt", header=T, sep = "\t")
+```
+
+
 
 
 #make phylogenetic tree. DECIPHER Alignseqs scales linearly rather than exponentially. Cannot be run on my computer. 
