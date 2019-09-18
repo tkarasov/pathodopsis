@@ -69,13 +69,13 @@ Now we are ready to infer the error models
 ### Analysis of OTU table
 Once we have the OTU table generated and filtered using dada2, we want to analyse our microbiomes. I've written a series of Rscripts that will analyse the data. Again these scripts can be submitted to the cluster with a shell script
 
-The following script takes the dada2 output and will filter the table to desired depths and normalize for relative abundance across the table
+The following script takes the dada2 output and will filter the table to desired depths and normalize for relative abundance across the table. This script also makes comparisons between the metagenome data and the 16S data
 
 ```console
-after_dada2_make_otu_table.R
+after_dada2_make_otu_table.Rmd
 ```
 Now we want to start look at differences in the microbiomes
 
 ```console
-after_dada2_do_pca.R
+after_dada2_do_pca.Rmd
 ```
