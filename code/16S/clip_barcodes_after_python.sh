@@ -37,7 +37,7 @@ do
     demult_file_R1=`ls | grep strip | grep "R1_$platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
     demult_file_R2=`ls | grep strip | grep "R2_$platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
     echo $demult_file_R2
-    cp $demult_file_R1 $output_direc/demult_python/${f1}_16S_R1.fastq
-    cp $demult_file_R2  $output_direc/demult_python/${f1}_16S_R2.fastq
+    cp $demult_file_R1 $output_direc/demult_python/${f1}_${f4}_16S_R1.fastq
+    cp $demult_file_R2  $output_direc/demult_python/${f1}_${f4}_16S_R2.fastq
 done<$info
 

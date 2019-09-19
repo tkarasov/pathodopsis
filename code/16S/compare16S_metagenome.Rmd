@@ -1,0 +1,132 @@
+---
+title: "Compare methods"
+author: "Talia_Karasov"
+date: "9/18/2019"
+output: html_document
+---
+The goal of this script is to take the output from the process_OTU table Rmd and compare the metagenome and 16S data
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width = 12, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE, cache = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#library(phyloseq)
+library(dada2)
+library(dplyr)
+library(tidyverse)
+library(fossil)
+library(reshape2)
+library(cowplot)
+#library(msa)
+#library(DECIPHER)
+
+library(genefilter)
+library(phangorn)
+library("RColorBrewer")
+library(gplots)
+library(sjstats)
+library(nlme)
+
+hue1_25 = c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76","#44c181","#d0452f","#4aadd6","#d6812c","#667fc7","#cbaa3b","#9c4769","#7dba6f","#dd809f","#3e8148","#c25d4d","#59c5b0","#de986d","#2f8a72","#91692e","#afb16c","#5f6c2b","#84892d")
+
+```
+
+#Comparison between metagenome and 16S classification
+Every column is a different plant so we need to normalize by column
+```{r}
+metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/2018_9_metagenome_reads/meta_family_corrected_per_plant.csv", sep=",", header=T, row.names = 1)
+
+metagenome = sweep(metagenome_orig, 2, colSums(metagenome_orig, na.rm=T), FUN="/")
+
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/sixteenS_family.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+
+```
+
+Now order them the same
+```{r}
+keep_id = colnames(metagenome)[colnames(metagenome) %in% colnames(sixteenS)]
+keep_fam = rownames(metagenome)[rownames(metagenome) %in% rownames(sixteenS)]
+sixteenS = sixteenS[keep_fam,keep_id]
+metagenome = metagenome[keep_fam, keep_id]
+
+```
+
+This doesn't look good (rho=0.25)
+```{r}
+cor.test(unlist(metagenome), unlist(sixteenS))
+
+plot(unlist(metagenome), unlist(sixteenS), pch = 20, xlab = "Metagenome", ylab = "16S")
+```
+
+Limit to top 10 genera
+```{r}
+top10_meta = names(sort(rowSums(metagenome), decreasing = T)[1:10])
+top10_six = names(sort(rowSums(sixteenS), decreasing = T)[1:10])
+u = union(top10_meta, top10_six)
+```
+
+```{r}
+metagenome$family = rownames(metagenome)
+sixteenS$family = rownames(metagenome)
+
+
+meta_melt = melt(metagenome, id="family")
+meta_melt = meta_melt[meta_melt$family%in%u,]
+
+sixteen_melt = melt(sixteenS, id="family")
+sixteen_melt = sixteen_melt[sixteen_melt$family%in%u,]
+p_meta = ggplot(data=meta_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25)
+
+p_16S = ggplot(data=sixteen_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25)
+
+legend1 = get_legend(p_16S)
+
+plot_grid(p_meta + theme(legend.position = "none") , p_16S + theme(legend.position = "none", axis.title.y = element_blank()), legend1, nrow = 1)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/metagenome_vs_16S_disaster.pdf")
+plot_grid(p_meta + theme(legend.position = "none") , p_16S + theme(legend.position = "none", axis.title.y = element_blank()), legend1, nrow = 1)
+dev.off()
+
+```
+So these results are puzzling. First of all, why does the metagenome say there is so much more Burkholderia than does the 16S analysis. Secondly, there is such a poor correlation between these two datasets. And lastly, why do the controls have so many reads.
+
+So why is burkholderia so common? Let's choose a few samples that have a lot of Burkholderia
+metagenome_orig["Burkholderiaceae",][which(metagenome_orig["Burkholderiaceae",]>2)]
+PA0343   PA0344   PA0367   PA0370   PA0373   PA0376   PA0391   PA0394   PA0397   PA0400   PA0403   PA0406   PA0692   PA0832   PA0842
+
+ PA0895   PA0913   PA1117   PA1119   PA1141   PA1156   PA1179   PA1184   PA1194   PA1196   PA1208   PA1210  PA1214   PA1256   PA1266   PA1268   PA1273
+
+
+PA0913 has 22947 reads for burkholdereacea in centrifuge_metagenome_table.txt
+ST-J00101:116:H23WVBBXY:3:1121:15554:31118 appears five times. It has four of the same taxonomic ranking and one different ranking. 
+
+
+
+#looking at the demultiplexing
+
+The following read was assigned to PA0480: 
+@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 1:N:0:CATGGACGTCTTTCCC
+GACCTACGGGAGGCAGCAGTGGGGAATTTTCCGCAATGGGCGCAAGCCTGACGGAGCAATGCCGCGTGGAGGTAGAAGGCCTACGGGTCCTGNACTTCTTTTCCCAGAGAAGAAGCAATGACGGTATCTGGGGAATAAGCATCGTCTAACTCTGTGCCAGCAGCCGCGGTAATACAGAGGATGCAAGCGTTATCCGGAATGATTGGGCGTAACGCGTCTGTAGGTGGCTGTTTAAGTCCGCCGTCAACTCCCAGGGCTAAACCCTGGACAGGCGGTGGAAACTACCAAGCTTGAGTACGG
+
+Reverse read:
+@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 2:N:0:CATGGACGTCTTTCCC
+TGACTACGGACTACTGGGGTATCTAATCCCATTCGCTCCCCTAGCTTTCGTCTCTCAGTGTCAGTGTCGGCCCAGCAGAGTGCTTTCGCCGTTGGTGTTCTTTCCGATCTCTACGCATTTCACCGCTCCACCGGAAATTCCCTCTGCCCCTACCGTACTCAAGCTTGGTAGTTTCCACCGCCTGTCCAGGGTTGAGCCCTGGGATTTGACGGCGGACTTAAAAACCCCCCTACAGACGTTTTACCCCCAATCCTTCCGGATAACCTTTACCTCACCTTTTTTACCTCGGCTGCTGCCACC
+
+What do I know about this sample?
+"CATGGACG TCTTTCCC" corresponds to ???
+
+What went wrong in the demultiplexing here? This reverse reads starts with "TGACTACGGACTAC" so why was it assigned to an index that should be 806.F5?
+
+PA0480		plate7	C7	341F1.806F5
+The barcode for position C7 is C7,,,,,CATGGACGC,,AGATCTCG,pathodopsis_16S,TaliaKarasov
+F1 = GACCTACGGGAGGCAGCAG
+F5(R) = GTAGTCCGTAGTC
