@@ -79,3 +79,10 @@ Now we want to start look at differences in the microbiomes
 ```console
 after_dada2_do_pca.Rmd
 ```
+### Checking for oddities of metagenomic table
+In general I have found more Burkholderia in the metagenomes than in the 16S data. I would like to be able to pull the reads assigned to a given category to assess who they are (and whether the classification makes sense)
+
+```console
+./code/metagenome/pull_taxonomic_reads.py <input_R1.fastq> <taxonomic_family>
+```
+This output a file (This output a file (/quality_control_metagenome/centrifuge_inspect/single_family_seq.fa) with the reads 
