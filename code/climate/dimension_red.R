@@ -2,7 +2,9 @@
 library("rwunderground")
 
 #read in info for all plants
-plant_info=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/v1_22_5_merged.txt", sep="\t", header=T)
+#plant_info=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/v1_22_5_merged.txt", sep=",", header=T)
+#plant_info=subset(plant_info, select=-c(Notes))
+plant_info=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course2.txt", sep="\t", header=T)
 
 #for all latitude and longitudes, build info on temperature and humidity
 #history_daily(location, date = "20150101", use_metric = FALSE, key = get_api_key(), raw = FALSE, message = TRUE)
@@ -26,4 +28,4 @@ meta_red=meta[sorted_meta,]
 meta_t=as.data.frame(t(meta_red))
 meta_t$Plant_ID=rownames(meta_t)
 meta_fin=merge(plant_info, meta_t)
-write.table(meta_fin,"/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/metagenome_metadata_9_2018_reads.txt", quote = F, row.names = F)
+write.table(meta_fin,"/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/metagenome_metadata_9_2018_reads.txt", quote = F, row.names = F, sep="\t")

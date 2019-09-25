@@ -1,6 +1,5 @@
 #pull the bad part from every read and rename read
-#to be used when the files were not properly demultiplexed
-
+#this was the one used for the bad barcode file (but can be used again once barcodes are fixed)
 output_direc=$1
 
 usearch=/ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/bin/usearch11.0.667_i86linux32
@@ -32,15 +31,14 @@ mkdir $output_direc/demult_python
 #read through every line of info file, and get renaming
 while IFS= read -r line;
 do
-    read -r f1 f2 f3 f4 f5 f6 <<<"$line"
-    wrong_platepos=$f4
-    correct_platepos=$f3
-    barcodeF=`echo $f5 | cut -f1 -d '.'`
-    barcodeR=`echo $f5 | cut -f2 -d '.'`
-    demult_file_R1=`ls | grep strip | grep "R1_$wrong_platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
-    demult_file_R2=`ls | grep strip | grep "R2_$wrong_platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
+    read -r f1 f2 f3 f4 <<<"$line"
+    platepos=$f3
+    barcodeF=`echo $f4 | cut -f1 -d '.'`
+    barcodeR=`echo $f4 | cut -f2 -d '.'`
+    demult_file_R1=`ls | grep strip | grep "R1_$platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
+    demult_file_R2=`ls | grep strip | grep "R2_$platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
     echo $demult_file_R2
-    cp $demult_file_R1 $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R1.fastq
-    cp $demult_file_R2  $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R2.fastq
+    cp $demult_file_R1 $output_direc/demult_python/${f1}_${f2}_${f3}_${f4}_16S_R1.fastq
+    cp $demult_file_R2  $output_direc/demult_python/${f1}_${f2}_${f3}_${f4}_16S_R2.fastq
 done<$info
 
