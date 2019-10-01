@@ -14,6 +14,7 @@ knitr::opts_chunk$set(fig.width = 12, fig.height = 8, echo = FALSE, warning = FA
 knitr::opts_chunk$set(echo = TRUE)
 
 #library(phyloseq)
+library("phyloseq")
 library(dada2)
 library(dplyr)
 library(tidyverse)
@@ -29,6 +30,7 @@ library("RColorBrewer")
 library(gplots)
 library(sjstats)
 library(nlme)
+library(corrplot)
 
 hue1_25 = c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76","#44c181","#d0452f","#4aadd6","#d6812c","#667fc7","#cbaa3b","#9c4769","#7dba6f","#dd809f","#3e8148","#c25d4d","#59c5b0","#de986d","#2f8a72","#91692e","#afb16c","#5f6c2b","#84892d")
 
@@ -37,11 +39,16 @@ hue1_25 = c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76
 #Comparison between metagenome and 16S classification
 Every column is a different plant so we need to normalize by column
 ```{r}
-metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/2018_9_metagenome_reads/meta_family_corrected_per_plant.csv", sep=",", header=T, row.names = 1)
+metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/meta_family_corrected_per_plant.csv", sep=",", header=T, row.names = 1)
+
+#metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/centrifuge_metagenome_table.txt", sep="\t", header=T, row.names = 1)
+#colnames(metagenome_orig)=gsub(".R1.fq.report", "", gsub("..centrifuge_output.", "", colnames(metagenome_orig)))
 
 metagenome = sweep(metagenome_orig, 2, colSums(metagenome_orig, na.rm=T), FUN="/")
 
-sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/sixteenS_family.csv", sep=",", header=T, row.names = 1)))
+#metagenome = subset(metagenome, select=-c("family"))
+
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family.csv", sep=",", header=T, row.names = 1)))
 
 sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
 
@@ -53,19 +60,32 @@ keep_id = colnames(metagenome)[colnames(metagenome) %in% colnames(sixteenS)]
 keep_fam = rownames(metagenome)[rownames(metagenome) %in% rownames(sixteenS)]
 sixteenS = sixteenS[keep_fam,keep_id]
 metagenome = metagenome[keep_fam, keep_id]
-
+#sixteenS = as.matrix(sixteenS)
+#metagenome = as.matrix(metagenome)
 ```
 
-This doesn't look good (rho=0.25)
+This doesn't look good (rho=0.28). But it seems to be family-specific. For some families we get good correlations but for others not at all
 ```{r}
 cor.test(unlist(metagenome), unlist(sixteenS))
 
 plot(unlist(metagenome), unlist(sixteenS), pch = 20, xlab = "Metagenome", ylab = "16S")
+
+corr_mat=as.data.frame(matrix(ncol = 3, nrow=0))
+colnames(corr_mat) = c("Family", "correlation", "pval")
+for(i in 1:dim(metagenome)[1]){
+  if(is.na(metagenome[i,1])!=TRUE){
+    curr_cor=cor.test(as.numeric(as.character(metagenome[i,])), as.numeric(as.character(sixteenS[i,])))
+    corr_mat[i,]=c(rownames(metagenome)[i], curr_cor$estimate, curr_cor$p.value)
+  }
+  else{
+    corr_mat[i,]=c(rownames(metagenome)[i], NA, NA)
+  }
+}
 ```
 
 Limit to top 10 genera
 ```{r}
-top10_meta = names(sort(rowSums(metagenome), decreasing = T)[1:10])
+top10_meta = names(sort(rowSums(metagenome_orig), decreasing = T)[1:10])
 top10_six = names(sort(rowSums(sixteenS), decreasing = T)[1:10])
 u = union(top10_meta, top10_six)
 ```
@@ -154,3 +174,57 @@ CCTGTTCGCTCCCCATGCTTTCGCTCCTCAGCGTCAGGTAATGCCCAGAGAACCGCCTTCGCCACCGGTGTTCCTCCTGA
 
 So the same run was demultiplexed incorrectly now...why would this be?
 I think the issue was in my clip_barcodes_after_python.sh script. The samples look good until the stripping.
+
+
+#comparing filtering
+How much does the filtering influence the relative abundances?
+```{r}
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family.csv", sep=",", header=T, row.names = 1)))
+sixteenS_5 = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+sixteenS_5 = sweep(sixteenS_5, 2, colSums(sixteenS_5, na.rm=T), FUN="/")
+sixteenS_5 = sixteenS_5[rownames(sixteenS),]
+
+#The filtering does not have a strong influence on the relative abundances
+plot(as.matrix(sixteenS), as.matrix(sixteenS_5), pch=20, xlab="Relative Abundance, filtering at 50", ylab="Relative Abundance, filtering at 5")
+cor.test(as.matrix(sixteenS), as.matrix(sixteenS_5))
+
+```
+
+
+
+#Rescaling the microbiome
+Let's move on for now and rescale our 16S file with the estimated load from the metagenome calculation
+```{r}
+met_orig_sub = metagenome_orig[rownames(sixteenS),colnames(subset(sixteenS, select=-c(family)))]
+to_transform = subset(sixteenS, select=-c(family))
+rescale = sweep(to_transform, 2, colSums(met_orig_sub, na.rm=T), FUN="*")
+
+#Reorder every sample according to load
+rescale = rescale[,order(colSums(met_orig_sub, na.rm=T), decreasing = T)]
+rescale = rescale[order(rowSums(met_orig_sub, na.rm=T),decreasing = T),]
+
+top10 = names(sort(rowSums(to_transform), decreasing = T)[1:10])
+rescale$family=rownames(rescale)
+rescale$family[rescale$family%ni%top10]="Other"
+
+#reorder=sort(colSums(met_orig_sub, na.rm=T), decreasing = T)
+rescale_melt=melt(rescale, id="family")
+
+p_16S = ggplot(data=rescale_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25) +
+  xlab("Plants") +
+  ylab("Microbial Genome/Plant Genome") +
+  theme(axis.text.x=element_blank())
+
+p_16S
+```
+
+Who is the most correlated with load?
+```{r}
+plot(as.numeric(as.character(rescale["Pseudomonadaceae",][1:100])), colSums(met_orig_sub, na.rm=T)[1:100])
+
+corrplot(cor(t(rescale)))
+```
