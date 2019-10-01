@@ -72,13 +72,19 @@ Once we have the OTU table generated and filtered using dada2, we want to analys
 The following script takes the dada2 output and will filter the table to desired depths and normalize for relative abundance across the table. This script also makes comparisons between the metagenome data and the 16S data
 
 ```console
-after_dada2_make_otu_table.Rmd
+Rscript -e "rmarkdown::render('/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/after_dada2_make_otu_table.Rmd')"
 ```
 Now we want to start look at differences in the microbiomes
+To augment the data with depth information and compare between the metagenome and 16S
+```console
+Rscript -e "rmarkdown::render('/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/compare16S_metagenome.Rmd")"
+```
 
+For spatial analysese:
 ```console
 after_dada2_do_pca.Rmd
 ```
+
 ### Checking for oddities of metagenomic table
 In general I have found more Burkholderia in the metagenomes than in the 16S data. I would like to be able to pull the reads assigned to a given category to assess who they are (and whether the classification makes sense)
 
