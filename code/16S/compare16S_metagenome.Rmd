@@ -39,16 +39,29 @@ hue1_25 = c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76
 #Comparison between metagenome and 16S classification
 Every column is a different plant so we need to normalize by column
 ```{r}
-metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/meta_family_corrected_per_plant.csv", sep=",", header=T, row.names = 1)
+metagenome_orig2 = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/meta_family_corrected_per_plant_v2_bacteria.csv", sep=",", header=T, row.names = 1)
+#Pseudomonadaceae     0.864007897140246 5.39616182027885e-175
+
+metagenome_orig1 = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/meta_family_corrected_per_plant.csv", sep=",", header=T, row.names = 1)
 
 #metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/centrifuge_metagenome_table.txt", sep="\t", header=T, row.names = 1)
 #colnames(metagenome_orig)=gsub(".R1.fq.report", "", gsub("..centrifuge_output.", "", colnames(metagenome_orig)))
 
-metagenome = sweep(metagenome_orig, 2, colSums(metagenome_orig, na.rm=T), FUN="/")
+metagenome1 = sweep(metagenome_orig1, 2, colSums(metagenome_orig1, na.rm=T), FUN="/")
+metagenome2 = sweep(metagenome_orig2, 2, colSums(metagenome_orig2, na.rm=T), FUN="/")
+reorder_2 = metagenome2[,colnames(metagenome1)]
+reorder_1 = metagenome1[rownames(reorder_2),]
 
+###################################################################################################
+## COMPARISON BETWEEN OLD AND NEW PIPELINE, 
+
+plot(as.numeric(as.character(unlist(reorder_1))), as.numeric(as.character(unlist(reorder_2))), pch=20)
+cor.test(as.numeric(as.character(unlist(reorder_1))), as.numeric(as.character(unlist(reorder_2))))
 #metagenome = subset(metagenome, select=-c("family"))
+###################################################################################################
 
-sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
 
 sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
 
@@ -56,26 +69,26 @@ sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
 
 Now order them the same
 ```{r}
-keep_id = colnames(metagenome)[colnames(metagenome) %in% colnames(sixteenS)]
-keep_fam = rownames(metagenome)[rownames(metagenome) %in% rownames(sixteenS)]
+keep_id = colnames(metagenome2)[colnames(metagenome2) %in% colnames(sixteenS)]
+keep_fam = rownames(metagenome2)[rownames(metagenome2) %in% rownames(sixteenS)]
 sixteenS = sixteenS[keep_fam,keep_id]
-metagenome = metagenome[keep_fam, keep_id]
+metagenome2 = metagenome2[keep_fam, keep_id]
 #sixteenS = as.matrix(sixteenS)
 #metagenome = as.matrix(metagenome)
 ```
 
 This doesn't look good (rho=0.28). But it seems to be family-specific. For some families we get good correlations but for others not at all
 ```{r}
-cor.test(unlist(metagenome), unlist(sixteenS))
+cor.test(unlist(metagenome2), unlist(sixteenS))
 
-plot(unlist(metagenome), unlist(sixteenS), pch = 20, xlab = "Metagenome", ylab = "16S")
+plot(unlist(metagenome2), unlist(sixteenS), pch = 20, xlab = "Metagenome", ylab = "16S")
 
 corr_mat=as.data.frame(matrix(ncol = 3, nrow=0))
 colnames(corr_mat) = c("Family", "correlation", "pval")
 for(i in 1:dim(metagenome)[1]){
   if(is.na(metagenome[i,1])!=TRUE){
     curr_cor=cor.test(as.numeric(as.character(metagenome[i,])), as.numeric(as.character(sixteenS[i,])))
-    corr_mat[i,]=c(rownames(metagenome)[i], curr_cor$estimate, curr_cor$p.value)
+    corr_mat[i,]=c(rownames(metagenome)[i], as.numeric(as.character(curr_cor$estimate)), as.numeric(as.character(curr_cor$p.value)))
   }
   else{
     corr_mat[i,]=c(rownames(metagenome)[i], NA, NA)
@@ -117,63 +130,29 @@ plot_grid(p_meta + theme(legend.position = "none") , p_16S + theme(legend.positi
 dev.off()
 
 ```
-So these results are puzzling. First of all, why does the metagenome say there is so much more Burkholderia than does the 16S analysis. Secondly, there is such a poor correlation between these two datasets. And lastly, why do the controls have so many reads.
-
-So why is burkholderia so common? Let's choose a few samples that have a lot of Burkholderia
-metagenome_orig["Burkholderiaceae",][which(metagenome_orig["Burkholderiaceae",]>2)]
-PA0343   PA0344   PA0367   PA0370   PA0373   PA0376   PA0391   PA0394   PA0397   PA0400   PA0403   PA0406   PA0692   PA0832   PA0842
-
- PA0895   PA0913   PA1117   PA1119   PA1141   PA1156   PA1179   PA1184   PA1194   PA1196   PA1208   PA1210  PA1214   PA1256   PA1266   PA1268   PA1273
 
 
-PA0913 has 22947 reads for burkholdereacea in centrifuge_metagenome_table.txt
-ST-J00101:116:H23WVBBXY:3:1121:15554:31118 appears five times. It has four of the same taxonomic ranking and one different ranking. 
+Let's look at raw reads
+```{r}
+meta_uncorrec = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/centrifuge_metagenome_table_bac.txt", sep="\t", header = T, row.names = 1)
+colnames(meta_uncorrec) = gsub(".R1.fq.out", "", colnames(meta_uncorrec))
+rownames(meta_uncorrec) = meta_uncorrec$family
+meta_uncorrec = subset(meta_uncorrec, select=-c(family))
+
+colSums(meta_uncorrec)
+unc_ra = sweep(meta_uncorrec, 2, colSums(meta_uncorrec, na.rm=T), FUN="/")
+
+unc_ra = unc_ra[,colnames(sixteenS)]
+
+shared_fam = intersect(rownames(unc_ra), rownames(sixteenS))
+
+unc_ra = unc_ra[shared_fam,]
+sixten_unc = sixteenS[shared_fam,]
+plot(unlist(unc_ra), unlist(sixten_unc))
+#now combine wwith 16S
+```
 
 
-
-#looking at the demultiplexing
-
-The following read was assigned to PA0480: 
-@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 1:N:0:CATGGACGTCTTTCCC
-GACCTACGGGAGGCAGCAGTGGGGAATTTTCCGCAATGGGCGCAAGCCTGACGGAGCAATGCCGCGTGGAGGTAGAAGGCCTACGGGTCCTGNACTTCTTTTCCCAGAGAAGAAGCAATGACGGTATCTGGGGAATAAGCATCGTCTAACTCTGTGCCAGCAGCCGCGGTAATACAGAGGATGCAAGCGTTATCCGGAATGATTGGGCGTAACGCGTCTGTAGGTGGCTGTTTAAGTCCGCCGTCAACTCCCAGGGCTAAACCCTGGACAGGCGGTGGAAACTACCAAGCTTGAGTACGG
-
-Reverse read:
-@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 2:N:0:CATGGACGTCTTTCCC
-TGACTACGGACTACTGGGGTATCTAATCCCATTCGCTCCCCTAGCTTTCGTCTCTCAGTGTCAGTGTCGGCCCAGCAGAGTGCTTTCGCCGTTGGTGTTCTTTCCGATCTCTACGCATTTCACCGCTCCACCGGAAATTCCCTCTGCCCCTACCGTACTCAAGCTTGGTAGTTTCCACCGCCTGTCCAGGGTTGAGCCCTGGGATTTGACGGCGGACTTAAAAACCCCCCTACAGACGTTTTACCCCCAATCCTTCCGGATAACCTTTACCTCACCTTTTTTACCTCGGCTGCTGCCACC
-
-What do I know about this sample?
-"CATGGACG TCTTTCCC" corresponds to ???
-
-What went wrong in the demultiplexing here? This reverse reads starts with "TGACTACGGACTAC" so why was it assigned to an index that should be 806.F5?
-
-PA0480		plate7	C7	341F1.806F5
-The barcode for position C7 is C7,,,,,CATGGACGC,,AGATCTCG,pathodopsis_16S,TaliaKarasov
-F1 = GACCTACGGGAGGCAGCAG
-F5(R) = GTAGTCCGTAGTC
-
-if I understand the problem correctly, then these reads should also be in there:
-@HWI-M00333R1:141:000000000-BWDK4:1:2119:15080:24654 2:N:0:CATGGACGTCTTTCCC
-@HWI-M00333R1:141:000000000-BWDK4:1:2119:15004:24265 2:N:0:CATGGACGTCTTTCCC
-@HWI-M00333R1:141:000000000-BWDK4:1:2119:10067:23999 2:N:0:CATGGACGTCTTTCCC
-
-In my demuliplexing from a few months ago this read was place in the PA0480 file:
-@HWI-M00333R1:141:000000000-BWDK4:1:1101:10539:5772 1:N:0:CATGGACGTCTTTCCC
-reverse read:
-GACTACGGACTACTAGGGTTTCTAATCTGGAGTTCAGACGTGCGCTCTTCTGCTGCCTCCCGTAGGTCAGATCGGAAGAGCGTCGTGCAGGGAAAGAGCGTAGAGCTCGGTGGTCGTTGCACCACTAAAAAAAGAATTCCAGTCACCACTCACGAACTCTAGTCCGCCCGTATCAAAGTCAGACCCGTAATTTAGCCCAGTGCTTTTGACTCCGCCGCAACGCACCGACTACTGAGTCATTACGCCCAATACATCATGTCCACGCGACCCCCCTACGTGATACCTACTCTTCTTGCCAGC
-
-This was the proper demultiplexing...I wonder what is going on now...
-This directory seems to be oK
-/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/demult_python
-
-
-OK I stripped again. This read was present in the stripped file. and in the all. file
-@HWI-M00333R1:141:000000000-BWDK4:1:1101:14324:2477 2:N:0:CATGGACGTCTTTCCC
-CCTGTTCGCTCCCCATGCTTTCGCTCCTCAGCGTCAGGTAATGCCCAGAGAACCGCCTTCGCCACCGGTGTTCCTCCTGATATCTGCGCATTTCACCGCTACACCCGGAATTCCGTTCTCCCCTTCATACCTCTAGTCTGCCCGTATCGAAAGCCAGCCAGGTGTTAAGCACCGGGTTTTCACTCCCGACGCGACCAACCGCCTCCGAGCCCTTTACGCCCAATAATTCCGTACCACGCTTGCCCCCTACGTATTACCTCAGCTTCTGGCCCGC
-
-
-
-So the same run was demultiplexed incorrectly now...why would this be?
-I think the issue was in my clip_barcodes_after_python.sh script. The samples look good until the stripping.
 
 
 #comparing filtering
@@ -228,3 +207,118 @@ plot(as.numeric(as.character(rescale["Pseudomonadaceae",][1:100])), colSums(met_
 
 corrplot(cor(t(rescale)))
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################################################
+STUFF THAT CAN BE REMOVED LATER
+###################################################
+
+
+#looking at the demultiplexing
+So these results are puzzling. First of all, why does the metagenome say there is so much more Burkholderia than does the 16S analysis. Secondly, there is such a poor correlation between these two datasets. And lastly, why do the controls have so many reads.
+
+So why is burkholderia so common? Let's choose a few samples that have a lot of Burkholderia
+metagenome_orig["Burkholderiaceae",][which(metagenome_orig["Burkholderiaceae",]>2)]
+PA0343   PA0344   PA0367   PA0370   PA0373   PA0376   PA0391   PA0394   PA0397   PA0400   PA0403   PA0406   PA0692   PA0832   PA0842
+
+ PA0895   PA0913   PA1117   PA1119   PA1141   PA1156   PA1179   PA1184   PA1194   PA1196   PA1208   PA1210  PA1214   PA1256   PA1266   PA1268   PA1273
+
+
+PA0913 has 22947 reads for burkholdereacea in centrifuge_metagenome_table.txt
+ST-J00101:116:H23WVBBXY:3:1121:15554:31118 appears five times. It has four of the same taxonomic ranking and one different ranking. 
+
+
+
+The following read was assigned to PA0480: 
+@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 1:N:0:CATGGACGTCTTTCCC
+GACCTACGGGAGGCAGCAGTGGGGAATTTTCCGCAATGGGCGCAAGCCTGACGGAGCAATGCCGCGTGGAGGTAGAAGGCCTACGGGTCCTGNACTTCTTTTCCCAGAGAAGAAGCAATGACGGTATCTGGGGAATAAGCATCGTCTAACTCTGTGCCAGCAGCCGCGGTAATACAGAGGATGCAAGCGTTATCCGGAATGATTGGGCGTAACGCGTCTGTAGGTGGCTGTTTAAGTCCGCCGTCAACTCCCAGGGCTAAACCCTGGACAGGCGGTGGAAACTACCAAGCTTGAGTACGG
+
+Reverse read:
+@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 2:N:0:CATGGACGTCTTTCCC
+TGACTACGGACTACTGGGGTATCTAATCCCATTCGCTCCCCTAGCTTTCGTCTCTCAGTGTCAGTGTCGGCCCAGCAGAGTGCTTTCGCCGTTGGTGTTCTTTCCGATCTCTACGCATTTCACCGCTCCACCGGAAATTCCCTCTGCCCCTACCGTACTCAAGCTTGGTAGTTTCCACCGCCTGTCCAGGGTTGAGCCCTGGGATTTGACGGCGGACTTAAAAACCCCCCTACAGACGTTTTACCCCCAATCCTTCCGGATAACCTTTACCTCACCTTTTTTACCTCGGCTGCTGCCACC
+
+What do I know about this sample?
+"CATGGACG TCTTTCCC" corresponds to ???
+
+What went wrong in the demultiplexing here? This reverse reads starts with "TGACTACGGACTAC" so why was it assigned to an index that should be 806.F5?
+
+PA0480		plate7	C7	341F1.806F5
+The barcode for position C7 is C7,,,,,CATGGACGC,,AGATCTCG,pathodopsis_16S,TaliaKarasov
+F1 = GACCTACGGGAGGCAGCAG
+F5(R) = GTAGTCCGTAGTC
+
+if I understand the problem correctly, then these reads should also be in there:
+@HWI-M00333R1:141:000000000-BWDK4:1:2119:15080:24654 2:N:0:CATGGACGTCTTTCCC
+@HWI-M00333R1:141:000000000-BWDK4:1:2119:15004:24265 2:N:0:CATGGACGTCTTTCCC
+@HWI-M00333R1:141:000000000-BWDK4:1:2119:10067:23999 2:N:0:CATGGACGTCTTTCCC
+
+In my demuliplexing from a few months ago this read was place in the PA0480 file:
+@HWI-M00333R1:141:000000000-BWDK4:1:1101:10539:5772 1:N:0:CATGGACGTCTTTCCC
+reverse read:
+GACTACGGACTACTAGGGTTTCTAATCTGGAGTTCAGACGTGCGCTCTTCTGCTGCCTCCCGTAGGTCAGATCGGAAGAGCGTCGTGCAGGGAAAGAGCGTAGAGCTCGGTGGTCGTTGCACCACTAAAAAAAGAATTCCAGTCACCACTCACGAACTCTAGTCCGCCCGTATCAAAGTCAGACCCGTAATTTAGCCCAGTGCTTTTGACTCCGCCGCAACGCACCGACTACTGAGTCATTACGCCCAATACATCATGTCCACGCGACCCCCCTACGTGATACCTACTCTTCTTGCCAGC
+
+This was the proper demultiplexing...I wonder what is going on now...
+This directory seems to be oK
+/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/demult_python
+
+
+OK I stripped again. This read was present in the stripped file. and in the all. file
+@HWI-M00333R1:141:000000000-BWDK4:1:1101:14324:2477 2:N:0:CATGGACGTCTTTCCC
+CCTGTTCGCTCCCCATGCTTTCGCTCCTCAGCGTCAGGTAATGCCCAGAGAACCGCCTTCGCCACCGGTGTTCCTCCTGATATCTGCGCATTTCACCGCTACACCCGGAATTCCGTTCTCCCCTTCATACCTCTAGTCTGCCCGTATCGAAAGCCAGCCAGGTGTTAAGCACCGGGTTTTCACTCCCGACGCGACCAACCGCCTCCGAGCCCTTTACGCCCAATAATTCCGTACCACGCTTGCCCCCTACGTATTACCTCAGCTTCTGGCCCGC
+
+
+
+So the same run was demultiplexed incorrectly now...why would this be?
+I think the issue was in my clip_barcodes_after_python.sh script. The samples look good until the stripping.
