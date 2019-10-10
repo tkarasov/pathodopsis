@@ -1,0 +1,313 @@
+---
+title: "OTU5_distribution"
+output: html_document
+---
+The goal of this script is to look at the plant info and find evidence of OTU5 (or lack thereof) and map its abundance on the European map
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width = 12, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE, cache = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#library(phyloseq)
+library("phyloseq")
+library(dada2)
+library(dplyr)
+library(tidyverse)
+library(fossil)
+library(reshape2)
+library(cowplot)
+library(intrval)
+#library(msa)
+#library(DECIPHER)
+
+library(genefilter)
+library(phangorn)
+library("RColorBrewer")
+library(gplots)
+library(sjstats)
+library(nlme)
+library(corrplot)
+
+hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744")
+```
+
+
+
+```{r}
+#choose whether working on home computer or at work
+path="/ebio"
+source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/scripts/16S/amp_seq_functions.R", sep=""))
+
+#https://f1000research.com/articles/5-1492/v1 This is the dada2 file
+
+output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/"
+
+seqtab.nochim = readRDS(paste(output_direc,"all_runs/demult_python/seqtab_final.rds", sep="/"))
+
+taxa=readRDS(paste(output_direc,"all_runs/demult_python/tax_final.rds", sep="/"))
+
+#metadata=read.table(paste(path,"/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/v1_22_5_merged.txt", sep=""), header=T, sep=",")
+#koppen_geiger=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course2.txt", header=T, sep="\t")
+metadata=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course2.txt", header=T, sep="\t")
+#metadata=merge(metadata, koppen_geiger, by=c("Site.ID", "Latitude", "Longitude"))
+```
+Data is read in, now we want to subset it properly to rename the controls (1:26) and give metadata
+
+```{r}
+samples.out <- sapply(strsplit(rownames(seqtab.nochim),"_"), "[",1)
+
+#keep the control names
+samples.out[1:26]=rownames(seqtab.nochim)[1:26]
+
+rownames(seqtab.nochim) = samples.out
+
+metadata_keep=metadata[metadata$Plant_ID%in%samples.out,]
+
+meta_unique = metadata_keep %>% distinct()
+
+metadata_organized=merge(data.frame(samples.out), meta_unique, by.x="samples.out", by.y="Plant_ID", all.x=TRUE)
+
+subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
+
+samdf <- data.frame(Subject=metadata_organized$samples.out, Latitude=metadata_organized$Latitude, Longitude=metadata_organized$Longitude, Altitude=metadata_organized$Altitude, hpa=metadata_organized$HpA_plant, TourID=metadata_organized$Tour_ID, Clim=metadata_organized$ClimateZ)
+
+rownames(samdf) <- samdf$Subject
+
+sample_names(seqtab.nochim)=samples.out
+```
+
+Now let's may the otu_table
+```{r}
+ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+               sample_data(samdf), 
+               tax_table(taxa))
+
+```
+
+#Pruning
+Remove samples with fewwer than 1000 reads
+```{r}
+GP = prune_samples(sample_sums(ps)>=1000, ps)
+GP = prune_samples(sample_data(GP)$TourID!="NA", GP)
+mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
+GP1 = prune_taxa(mito, GP)
+#flist    <- filterfun(kOverA(1, 50))
+#GP50 = filter_taxa(GP, flist, TRUE )
+#rm(seqtab.nochim)
+```
+
+write fasta file of taxa names
+```{r}
+taxa_seq = taxa_names(GP1)
+
+cat("", file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='', append=FALSE)
+for(i in 1:length(taxa_seq)){
+  cat(paste(">seq_",i, sep=""), file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='\n', append=TRUE)
+  cat(taxa_seq[i],file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='\n', append=TRUE)
+}
+  
+```
+
+
+Now for taxa names
+```{r}
+dna <- Biostrings::DNAStringSet(taxa_names(GP1))
+names(dna) <- taxa_names(GP1)
+GP1 <- merge_phyloseq(GP1, dna)
+taxa_names(GP1) <- paste0("seq_", seq(ntaxa(GP1)))
+rm(dna)
+```
+>seq_10
+TGGGGAATATTGGACAATGGGCGAAAGCCTGATCCAGCCATGCCGCGTGTGTGAAGAAGGTCTTCGGATTGTAAAGCACTTTAAGTTGGGAGGAAGGGCAGTAACCTAATACGTTATTGTTTTGACGTTACCGACAGAATAAGCACCGGCTAACTCTGTGCCAGCAGCCGCGGTAATACAGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCGCGTAGGTGGTTTGTTAAGTTGAATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATCCAAAACTGGCAAGCTAGAGTAGGGCAGAGGGTGGTGGAATTTCCTGTGTAGCGGTGAAATGCGTAGATATAGGAAGGAACACCAGTGGCGAAGGCGACCACCTGGGCTCATACTGACACTGAGGTGCGAAAGCGTGGGGAGCAAACAGG
+
+TGGGGAATATTGGACAATGGGCGAAAGCCTGATCCAGCCATGCCGCGTGTGTGAAGAAGGTCTTCGGATTGTAAAGCACTTTAAGTTGGGAGGAAGGGCAGTAACCTAATACGTTATTGTTTTGACGTTACCGACAGAATAAGCACCGGCTAACTCTGTGCCAGCAGCCGCGGTAATACAGAGGGTGCAAGCGTTAATCGGAATTACTGGGCGTAAAGCGCGCGTAGGTGGTTTGTTAAGTTGAATGTGAAATCCCCGGGCTCAACCTGGGAACTGCATCCAAAACTGGCAAGCTAGAGTAGGGCAGAGGGTGGTGGAATTTCCTGTGTAGCGGTGAAATGCGTAGATATAGGAAGGAACACCAGTGGCGAAGGCGACCACCTGGGCTCATACTGACACTGAGGTGCGAAAGCGTGGGGAGCAAACAGG
+
+Now match sample to OTU5
+```{r}
+flist    <- filterfun(kOverA(1, 50))
+GP50 = filter_taxa(GP1, flist, TRUE )
+GP_RA = transform_sample_counts(GP50, function(OTU) OTU/sum(OTU))
+
+OTU5_match=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/OTU5_ident.blast.out")
+more99 = OTU5_match[OTU5_match$V3>=99.0,]
+
+GP_OTU5 = prune_taxa(taxa = as.character(more99$V2), x = GP_RA)
+
+
+```
+
+
+Now sum all OTU5-associated
+```{r}
+OTU5_tab=rowSums(otu_table(GP_OTU5))
+OTU5_tab = cbind(OTU5, sample_data(GP_OTU5))
+write.table(OTU5_tab,"/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/OTU5_RA_table.txt", sep="\t", col.names = T, quote = F, row.names = T )
+```
+
+And plot on map
+```{r}
+#library(maps)
+#library(mapdata)
+library(plotrix)
+library(rgdal)
+library(RColorBrewer)
+library(ggthemes)
+
+
+# create a blank ggplot theme
+
+theme_opts<-list(theme(panel.grid.minor = element_blank(),
+                       panel.grid.major = element_blank(),
+                       panel.background = element_rect(fill = 'light blue', colour = NA),
+                       panel.border = element_rect(colour = "dark grey", fill=NA, size=.5),
+                       #plot.background = element_rect(fill="light grey",
+                       #size=1,linetype="solid",color="black"),
+                       #axis.line = element_blank(),
+                       axis.text.x = element_blank(),
+                       axis.text.y = element_blank(),
+                       axis.ticks = element_blank(),
+                       axis.title.x = element_blank(),
+                       axis.title.y = element_blank(),
+                       plot.title = element_text(size=22)))
+
+
+
+
+#for plotting europe: http://rstudio-pubs-static.s3.amazonaws.com/160172_4e18005efc2d4ee28d9b45d117f2a6bd.html
+#sb = scalebar(9.05,48.45, 0.005, , 0.0143, "km" )
+path="/ebio"
+#path="~/work_main"
+OTU5_tab=read.table(paste(path, "/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/OTU5_RA_table.txt", sep =""), sep="\t", header = T )
+OTU5_tab$OTU5=as.numeric(as.character(OTU5_tab$OTU5))
+
+#orginal data
+wmap <- readOGR(dsn=paste(path,"/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/climate/map_shapefiles/ne_110m_land/ne_110m_land.shp", sep=""), layer="ne_110m_land")
+wmap_df<-fortify(wmap)
+
+countries <- readOGR(dsn=paste(path, "/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/climate/map_shapefiles/ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp", sep=""), layer="ne_110m_admin_0_countries")
+countries_df<-fortify(countries)
+
+#reproject to european projection
+wmap_laea<- spTransform(wmap, CRS("+proj=laea"))  #each projection will have it's own code which you can enter in after"+proj=XXXX"
+countries_laea<-spTransform(countries, CRS("+proj=laea"))
+
+#First add some wiggle to the OTU5 points then reproject the points
+OTU5_tab$Longitude = OTU5_tab$Longitude + runif(n=length(OTU5_tab$Longitude), min=0, max=0.05)
+OTU5_tab$Latitude = OTU5_tab$Latitude + runif(n=length(OTU5_tab$Latitude), min=0, max=0.05)
+coordinates(OTU5_tab) = c("Longitude", "Latitude")
+proj4string(OTU5_tab) <- CRS("+proj=longlat")
+OTU5_laea<-spTransform(OTU5_tab, CRS("+proj=laea"))
+
+#reprojected data
+wmap_laea_df<-fortify(wmap_laea)
+countries_laea_df<-fortify(countries_laea)
+OTU5_laea_df<-data.frame(OTU5_laea)
+
+
+
+xmin<-min(OTU5_laea_df$Longitude)
+xmax<-max(OTU5_laea_df$Longitude)
+ymin<-min(OTU5_laea_df$Latitude)
+ymax<-max(OTU5_laea_df$Latitude)
+buff<-0.2
+
+calc_OTU5 = ggplot(data=OTU5_laea_df, aes(Longitude, Latitude)) + 
+  geom_polygon(data=wmap_laea_df, 
+               aes(long,lat,group=group), 
+               fill="white") +
+  geom_path(data=countries_laea_df, 
+            aes(long,lat, group=group), 
+            color="light grey",
+            size=0.1) +
+  geom_point(data=OTU5_laea_df, 
+             aes(Longitude, Latitude, size=(OTU5_laea_df$OTU5)), 
+             alpha=OTU5_laea_df$OTU5+.1,  colour = "#D6604D") +
+  #scale_size(range=c(1,8), guide = "legend", labs(size="Count")) +
+  scale_size(guide = 'legend', 
+             labs(size="OTU5 RA(%)"), 
+             breaks = seq(0,1,.2)) + 
+  coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),
+  (ymax+buff))) +
+  theme(aspect.ratio=1)+
+  theme_opts +
+  theme(           legend.justification=c(0,1), 
+           legend.position=c(0.70, 0.95),
+           legend.background = element_blank())
+
+```
+This gives a pretty great looking plot. But what if I want to  impute the values for the region
+Here is a blogpost about the topic:
+https://timogrossenbacher.ch/2018/03/categorical-spatial-interpolation-with-r/
+
+This looks a little easier:
+https://rspatial.org/raster/analysis/4-interpolation.html
+
+But right now this is most of what I am using:
+https://stackoverflow.com/questions/41580004/how-to-plot-interpolating-data-on-a-projected-map-using-ggplot2-in-r/41648998
+```{r}
+#library(sf)
+#library(foreach)
+#library(kknn)
+#library(rspatial)
+library(automap)
+library("RColorBrewer")
+color.col = colorRampPalette(brewer.pal(10, "RdYlBu"))(256)
+
+# Ordinary kriging, with new_data object
+ptsreg <- spsample(countries_laea, 5000000, type = "regular")
+kriging_result = autoKrige(OTU5~1, OTU5_laea, new_data = ptsreg)$krige_output
+
+#plot(kriging_result)
+#spplot(kriging_result,'var1.pred')
+
+
+Krig = kriging_result[!is.na(over(kriging_result,as(countries_laea,"SpatialPolygons"))),]  # take only the points falling in polygons
+Krig_df = as.data.frame(Krig)
+names(Krig_df) = c("longitude","latitude","APPT_pred","APPT_var","APPT_stdev")
+g_fort = fortify(countries_laea)
+
+
+
+#Borders = ggplot() +
+#  geom_raster(data=Krig_df, aes(x=longitude, y=latitude,fill=APPT_pred))+
+#  geom_polygon(data=g_fort,aes(x=long,y=lat,group=group),
+#               fill='transparent',color = "black")+
+#  theme_bw()
+#Borders
+
+
+interpolated_OTU5 = ggplot(data=OTU5_laea_df, aes(Longitude, Latitude)) + 
+  geom_polygon(data=wmap_laea_df, 
+               aes(long,lat,group=group), 
+               fill="white") +
+  #geom_point(data=OTU5_laea_df, 
+  #           aes(Longitude, Latitude, size=(OTU5_laea_df$OTU5)), 
+  #           alpha=OTU5_laea_df$OTU5+.1,  colour = "#D6604D") +
+  geom_raster(data=Krig_df, aes(x=longitude, y=latitude, fill=APPT_pred)) +
+  #scale_fill_gradient(low= "white", high="red", guide = 'legend', 
+  scale_fill_distiller(palette = "Spectral", 
+  
+             labs(size="OTU5 RA(%)"), 
+             breaks = seq(0,1,.05)) + 
+  geom_path(data=countries_laea_df, 
+            aes(long,lat, group=group), 
+            color="light grey",
+            size=0.1) +
+  coord_cartesian(xlim = c((xmin-buff),(xmax+buff)), ylim = c((ymin-buff),
+  (ymax+buff))) +
+  theme(aspect.ratio=1)+
+  theme_opts +
+  theme(legend.justification=c(0,1), 
+        legend.position=c(0.70, 0.95),
+        legend.background = element_blank()
+        )
+
+pdf(paste(path,"/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU5_imputed.pdf", sep=""), family = "ArialMT", useDingbats=FALSE)
+plot_grid(calc_OTU5, interpolated_OTU5)
+dev.off()
+
+```
+

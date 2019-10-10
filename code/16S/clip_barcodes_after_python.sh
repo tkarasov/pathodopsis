@@ -1,9 +1,21 @@
-#pull the bad part from every read and rename read
-#to be used when the files were not properly demultiplexed
+#!/bin/bash
+
+############################################################################################################
+# FIXING MESSED UP BARCODES (DIFFERENT VERSIONS OF BARCODE ORDERS)
+
+# Pull the bad part from every read and rename read to be used when the files were not properly demultiplexed
+#############################################################################################################
 
 output_direc=$1
+demultiplexing_file=$2
 
 usearch=/ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/bin/usearch11.0.667_i86linux32
+
+
+############################################################################################################
+# First remove barcodes
+############################################################################################################
+
 for var1 in 1 2 3 4 5 6;
 do
     for var2 in 1 2 3 4 5 6;
@@ -25,7 +37,13 @@ done
 #$usearch -fastx_truncate "$merged"_temp.fq -stripleft 20 -stripright 26  -fastqout "$merged"_temp.fq.stripped
 
 #once these are done rename all of the files
-info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/16S_plate_locations.csv
+#info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/16S_plate_locations.csv
+
+info=$demultiplexing_file
+############################################################################################################
+# Now rename according to the correct barcoding
+############################################################################################################
+
 
 mkdir $output_direc/demult_python
 #cd $output_direc/demult_python

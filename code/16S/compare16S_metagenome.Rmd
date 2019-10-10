@@ -21,6 +21,7 @@ library(tidyverse)
 library(fossil)
 library(reshape2)
 library(cowplot)
+library(intrval)
 #library(msa)
 #library(DECIPHER)
 
@@ -32,7 +33,9 @@ library(sjstats)
 library(nlme)
 library(corrplot)
 
-hue1_25 = c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76","#44c181","#d0452f","#4aadd6","#d6812c","#667fc7","#cbaa3b","#9c4769","#7dba6f","#dd809f","#3e8148","#c25d4d","#59c5b0","#de986d","#2f8a72","#91692e","#afb16c","#5f6c2b","#84892d")
+hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744")
+  
+# c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76","#44c181","#d0452f","#4aadd6","#d6812c","#667fc7","#cbaa3b","#9c4769","#7dba6f","#dd809f","#3e8148","#c25d4d","#59c5b0","#de986d","#2f8a72","#91692e","#afb16c","#5f6c2b","#84892d")
 
 ```
 
@@ -81,8 +84,7 @@ This doesn't look good (rho=0.28). But it seems to be family-specific. For some 
 ```{r}
 cor.test(unlist(metagenome2), unlist(sixteenS))
 
-plot(unlist(metagenome2), unlist(sixteenS), pch = 20, xlab = "Metagenome", ylab = "16S")
-
+plot(sqrt(unlist(metagenome2)), sqrt(unlist(sixteenS)), pch = 20, xlab = "Metagenome", ylab = "16S")
 corr_mat=as.data.frame(matrix(ncol = 3, nrow=0))
 colnames(corr_mat) = c("Family", "correlation", "pval")
 for(i in 1:dim(metagenome)[1]){
@@ -94,6 +96,53 @@ for(i in 1:dim(metagenome)[1]){
     corr_mat[i,]=c(rownames(metagenome)[i], NA, NA)
   }
 }
+
+```
+
+Limit to top 10 genera
+```{r}
+top10_meta = names(sort(rowSums(metagenome_orig), decreasing = T)[1:10])
+top10_six = names(sort(rowSums(sixteenS), decreasing = T)[1:10])
+u = union(top10_meta, top10_six)
+```
+
+
+
+```{r}
+t_six = data.frame(t(sixteenS))
+t_meta = data.frame(t(metagenome2))
+t_meta$method = "Metagenome"
+t_meta$Plant = rownames(t_meta)
+t_six$method = "SixteenS"
+t_six$Plant = rownames(t_six)
+meta_melt = reshape2::melt(t_meta, variable.name = "Family", value.name = "meta_RA",  idvars = c("Plant", "method"))
+six_melt = reshape2::melt(t_six, variable.name = "Family", value.name = "six_RA", idvars = c("Plant", "method"))
+all_melt = merge(meta_melt, six_melt, by=c("Plant", "Family"))
+all_melt$Family[which(all_melt$Family %ni% u)]=as.factor("Other")
+
+
+comp = ggplot(data = all_melt, aes(x = (six_RA + 0.0001)*100, y = (meta_RA+0.0001)*100, col = Family )) +
+  geom_point() + 
+  scale_color_manual(values = hue1_25) +
+  theme_bw() +
+  geom_abline(slope = 1, linetype = "dashed", color = "Grey", size = 1.0) +
+  scale_x_log10() +
+  scale_y_log10() +
+  xlab("16S RA (%)") +
+  ylab("Metagenome RA (%)") +
+  theme_minimal_hgrid(12, rel_small = 1) +
+  theme(
+    legend.position = "top",
+    legend.justification = "right",
+    legend.text = element_text(size = 9),
+    legend.box.spacing = unit(0, "pt"),
+    legend.title = element_blank()
+  ) +
+  guides(colour = guide_legend(override.aes = list(size=5)))
+  
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/metagenome_vs_16S_final.pdf", family = "ArialMT", useDingbats=FALSE)
+comp
+dev.off()
 ```
 
 Limit to top 10 genera
@@ -209,7 +258,33 @@ corrplot(cor(t(rescale)))
 ```
 
 
+What about plotting just the sixteenS data
+```{r}
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
 
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+top5 = rownames(sixteenS)[order(rowSums(sixteenS), decreasing = T)][1:8]
+sixteenS$family = rownames(sixteenS)
+sixteenS$family[sixteenS$family %ni% top10]="Other"
+#sixt_rescale = sixteenS[,order(sixteenS["Burkholderiaceae",], decreasing = T)]
+
+#reorder the families in the barplot
+sixt_rescale$family = fct_relevel(sixt_rescale$family, "Other", after = 0)
+sixt_rescale$family = fct_relevel(sixt_rescale$family, "Burkholderiaceae", after = 10)
+
+six_melt = melt(sixt_rescale, id="family")
+#six_melt$variable=reorder(six_melt$variable, six_melt$value, function(x) max(table(x)[1]))
+
+
+p_16S_alone = ggplot(data=six_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25) +
+  xlab("Plants") +
+  ylab("16S relative Abundance") +
+  theme(axis.text.x=element_blank())
+
+p_16S_alone
+```
 
 
 
