@@ -10,10 +10,12 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 * [picard (version 2.17.3)](https://broadinstitute.github.io/picard/)
 * [samtools (version 1.6-19-g1c03df6(using htslib 1.6-53-ge539b32)](http://www.htslib.org/)
 * [centrifuge (version 1.0.4)](https://ccb.jhu.edu/software/centrifuge/manual.shtml)
-
+* [dada2 (version 1.14)](https://benjjneb.github.io/dada2/)
 
 
 ### 16S/ITS Analysis
+
+
 
 ### Metagenomics
 
