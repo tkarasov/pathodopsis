@@ -290,7 +290,7 @@ interpolated_OTU5 = ggplot(data=OTU5_laea_df, aes(Longitude, Latitude)) +
   #scale_fill_gradient(low= "white", high="red", guide = 'legend', 
   scale_fill_distiller(palette = "Spectral", 
   
-             labs(size="OTU5 RA(%)"), 
+             labs(size="OTU5 RA(%)", ), 
              breaks = seq(0,1,.05)) + 
   geom_path(data=countries_laea_df, 
             aes(long,lat, group=group), 
@@ -309,5 +309,9 @@ pdf(paste(path,"/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU5_i
 plot_grid(calc_OTU5, interpolated_OTU5)
 dev.off()
 
+pdf(paste(path,"/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU5_kriging_alone.pdf", sep=""), family = "ArialMT", useDingbats=FALSE)
+interpolated_OTU5 +
+  theme(panel.background = element_rect(fill = 'White', colour = NA))
+dev.off()
 ```
 
