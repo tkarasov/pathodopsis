@@ -39,7 +39,7 @@ hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#1
 ```{r}
 #choose whether working on home computer or at work
 path="/ebio"
-source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/scripts/16S/amp_seq_functions.R", sep=""))
+source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/amp_seq_functions.R", sep=""))
 
 #https://f1000research.com/articles/5-1492/v1 This is the dada2 file
 
@@ -88,7 +88,7 @@ ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE),
 ```
 
 #Pruning
-Remove samples with fewwer than 1000 reads
+Remove samples with fewer than 1000 reads
 ```{r}
 GP = prune_samples(sample_sums(ps)>=1000, ps)
 GP = prune_samples(sample_data(GP)$TourID!="NA", GP)
@@ -110,7 +110,6 @@ for(i in 1:length(taxa_seq)){
 }
   
 ```
-
 
 Now for taxa names
 ```{r}
@@ -135,7 +134,6 @@ OTU5_match=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/process
 more99 = OTU5_match[OTU5_match$V3>=99.0,]
 
 GP_OTU5 = prune_taxa(taxa = as.character(more99$V2), x = GP_RA)
-
 
 ```
 

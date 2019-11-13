@@ -23,25 +23,17 @@ conda activate pathodopsis
 S16="/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S"
 amp_general="/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/amplicon_general"
 
-#output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all
-
-output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
+output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/
 
 silva=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database
 
-mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
-
-cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
-
-cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/soil_16S_ITS/run174_16S_9_2019_soil_16S/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
-
-cd $output_direc
+cd $output_direc/all_runs/demult_python/
 
 # first filter with dada2
-$amp_general/dada2_filter_tlk.R \
-       -f $output_direc --truncLen 270,200 \
-       --maxEE 3,7 --truncQ 2 --threads 9 --f_match _R1.*fastq \
-       --r_match _R2.*fastq
+ # $amp_general/dada2_filter_tlk.R \
+ #       -f /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python --truncLen 270,200 \
+ #       --maxEE 3,7 --truncQ 2 --threads 9 --f_match _R1.*fastq \
+ #       --r_match _R2.*fastq
 
 # then infer
  # $amp_general/dada2_inference_tlk.R \
@@ -49,7 +41,7 @@ $amp_general/dada2_filter_tlk.R \
 
 
 # Remove chimeric variants and assign taxonomy
-$amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
+$amp_general/dada2_chimera_taxa.R -i $output_direc/all_runs/demult_python/seqtab.rds \
  -r $silva/silva_nr_v132_train_set.fa.gz \
  -t 9 --skip_species --verbose TRUE \
  --tax_out $output_direc/all_runs/demult_python/tax_final.rds

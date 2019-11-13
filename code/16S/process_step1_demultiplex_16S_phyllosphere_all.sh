@@ -71,7 +71,9 @@ done
 
 #now we need to remove the barcodes from the files and rename them. The resulting files go into demult_python
 
-demultiplexing_file=/ebio/abt6_projects9/pathodopsis_microbiomes/data/
+demultiplexing_file=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/plate_location_map_16S_ITS1.txt
+
+#/ebio/abt6_projects9/pathodopsis_microbiomes/data/
 $S16/clip_barcodes_after_python.sh $output_direc/ $demultiplexing_file
 
 #info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/16S_plate_locations.csv

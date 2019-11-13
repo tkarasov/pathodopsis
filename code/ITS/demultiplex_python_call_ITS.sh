@@ -21,11 +21,17 @@
 # Run job from current working directory
 #$ -cwd
 
+source /ebio/abt6/tkarasov/.bashrc
+
+conda activate pathodopsis
+
+
 name=$name
+output_direc=$output_direc
 R1=$R1
 R2=$R2
 
 
-python /ebio/abt6_projects9/pathodopsis_microbiomes/scripts/ITS/demultiplex_ITS_non_flashed.py $name $R1 $R2
+python /ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/ITS/demultiplex_ITS_non_flashed.py $name $output_direc $R1 $R2
 
 

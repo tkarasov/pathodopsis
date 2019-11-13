@@ -37,7 +37,7 @@ done
 #$usearch -fastx_truncate "$merged"_temp.fq -stripleft 20 -stripright 26  -fastqout "$merged"_temp.fq.stripped
 
 #once these are done rename all of the files
-#info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/16S_plate_locations.csv
+#info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/16S_plate_locations.txt
 
 info=$demultiplexing_file
 ############################################################################################################
@@ -57,8 +57,13 @@ do
     barcodeR=`echo $f5 | cut -f2 -d '.'`
     demult_file_R1=`ls | grep strip | grep "R1_$wrong_platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
     demult_file_R2=`ls | grep strip | grep "R2_$wrong_platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
-    echo $demult_file_R2
+    echo "output is:"$output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R1.fastq
+    echo "demult_file_R1:"$demult_file_R1
+    #if [ -z "$var" ]
+    #then
+    #    break
+    #fi
     cp $demult_file_R1 $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R1.fastq
     cp $demult_file_R2  $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R2.fastq
-done<$info
+done< $info
 

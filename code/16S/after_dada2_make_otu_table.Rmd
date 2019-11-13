@@ -34,7 +34,9 @@ hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#1
 
 ```
 
-
+#######################################################################
+# Reading in data and filtering 
+#######################################################################
 ```{r}
 #path="/Users/tkarasov/work_main"
 
@@ -118,6 +120,27 @@ GP_fam=tax_glom(GP50, "Family")
 rm(GP)
 ```
 
+#######################################################################
+# Write OTU table
+#######################################################################
+write fasta file of taxa names
+```{r}
+taxa_seq = taxa_names(GP)
+
+cat("", file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='', append=FALSE)
+for(i in 1:length(taxa_seq)){
+  cat(paste(">seq_",i, sep=""), file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='\n', append=TRUE)
+  cat(taxa_seq[i],file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='\n', append=TRUE)
+}
+  
+```
+
+
+#######################################################################
+# Basic plot of abundance
+#######################################################################
+
+
 ```{r}
 #basic plot
 top20 <- names(sort(taxa_sums(GP50), decreasing=TRUE))[1:20]
@@ -153,7 +176,7 @@ Merge ASV table on genus and family
 #GP_genus=tax_glom(GP, "Genus")
 ```
 
-Rename ASV for family and rename duplicates
+Rename ASV for family and rename duplicates (but why are there duplicates?)
 ```{r}
 dups = which(duplicated(as.character(tax_table(GP_fam)[,5])))
 the_name = paste(as.character(tax_table(GP_fam)[,5])[dups], as.character(dups), sep="_")

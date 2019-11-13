@@ -2,6 +2,8 @@
 
 #pull the bad part from every read and rename read
 usearch=/ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/bin/usearch11.0.667_i86linux32
+output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/all_runs 
+
 for var1 in 1 2 3 4 5 6;
 do
     for var2 in 1 2 3 4 5 6;
@@ -22,21 +24,27 @@ done
 $usearch -fastx_truncate "$merged"_temp.fq -stripleft 20 -stripright 26  -fastqout "$merged"_temp.fq.stripped
 
 #once these are done rename all of the files
-info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/ITS_1_2019/ITS_plate_locations.txt
+info=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/plate_location_map_16S_ITS1.txt
 
-cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/ITS_1_2019/demult_python
+cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/all_runs
+mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/all_runs/demult_python
+
 #read through every line of info file, and get renaming
-while IFS=  read -r line;
+while IFS= read -r line;
 do
-    read -r f1 f2 f3 f4 <<<"$line"
-    platepos=$f3
-    barcodes=$f4
-    demult_file_R1=`ls | grep strip | grep "R1_$platepos.fastq" | grep $barcodes`
-    demult_file_R2=`ls | grep strip | grep "R2_$platepos.fastq" | grep $barcodes`
-    echo $demult_file_R2
-    echo "That was supposed to be the demult"
-    echo $platepos, $barcodes
-    cp $demult_file_R1  /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/ITS_1_2019/demult_python/${f1}_ITS_R1.fastq
-    cp $demult_file_R2  /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/ITS_1_2019/demult_python/${f1}_ITS_R2.fastq
-done<$info
-
+    read -r f1 f2 f3 f4 f5 f6 f7 <<<"$line"
+    wrong_platepos=$f4
+    correct_platepos=$f3
+    barcodeF=`echo $f7 | cut -f1 -d '_'`
+    barcodeR=`echo $f7 | cut -f2 -d '_'`
+    demult_file_R1=`ls | grep strip | grep "R1_$wrong_platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
+    demult_file_R2=`ls | grep strip | grep "R2_$wrong_platepos.fastq" | grep "$barcodeF" | grep "$barcodeR"`
+    echo "output is:"$output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_ITS_R1.fastq
+    echo "demult_file_R1:"$demult_file_R1
+    #if [ -z "$var" ]
+    #then
+    #    break
+    #fi
+    cp $demult_file_R1 $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R1.fastq
+    cp $demult_file_R2  $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R2.fastq
+done< $info
