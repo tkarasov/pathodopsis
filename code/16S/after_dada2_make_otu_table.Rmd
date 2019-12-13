@@ -46,15 +46,18 @@ source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/scripts/16S/amp_seq_
 
 #https://f1000research.com/articles/5-1492/v1 This is the dada2 file
 
-output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/"
+output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
+seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
+taxa=readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
 
-seqtab.nochim = readRDS(paste(output_direc,"all_runs/demult_python/seqtab_final.rds", sep="/"))
-
-taxa=readRDS(paste(output_direc,"all_runs/demult_python/tax_final.rds", sep="/"))
+#output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/"
+#seqtab.nochim = readRDS(paste(output_direc,"all_runs/demult_python/seqtab_final.rds", sep="/"))
+#taxa=readRDS(paste(output_direc,"all_runs/demult_python/tax_final.rds", sep="/"))
 
 #metadata=read.table(paste(path,"/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/v1_22_5_merged.txt", sep=""), header=T, sep=",")
 #koppen_geiger=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course2.txt", header=T, sep="\t")
 metadata=read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course2.txt", header=T, sep="\t")
+
 #metadata=merge(metadata, koppen_geiger, by=c("Site.ID", "Latitude", "Longitude"))
 ```
 Data is read in, now we want to subset it properly to rename the controls (1:26) and give metadata
@@ -128,6 +131,7 @@ write fasta file of taxa names
 taxa_seq = taxa_names(GP)
 
 cat("", file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='', append=FALSE)
+
 for(i in 1:length(taxa_seq)){
   cat(paste(">seq_",i, sep=""), file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='\n', append=TRUE)
   cat(taxa_seq[i],file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/all_ASVs.fasta", sep='\n', append=TRUE)

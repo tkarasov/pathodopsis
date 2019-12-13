@@ -2,7 +2,7 @@
 #
 #  Reserve 4 CPUs for this job
 #$ -pe parallel 4
-#  Request 128G of RAM total (32per)
+#  Request 256G of RAM total (32per)
 #$ -l h_vmem=64G
 #$ -o $HOME/tmp/stdout_of_job_dada2
 #  The name shown in the qstat output and in the output file(s). The
@@ -29,7 +29,7 @@ output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/1
 
 silva=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database
 
-mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
+#mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
 cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
@@ -44,26 +44,25 @@ $amp_general/dada2_filter_tlk.R \
        --r_match _R2.*fastq
 
 # then infer
- # $amp_general/dada2_inference_tlk.R \
- #       -f $output_direc/all_runs/demult_python/filtered_fastqs --seed 1659 -qt 9 --verbose --plot_errors
-
+$amp_general/dada2_inference_tlk.R \
+       -f $output_direc/filtered_fastqs --seed 1659 -qt 9 --verbose --plot_errors
 
 # Remove chimeric variants and assign taxonomy
 $amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
  -r $silva/silva_nr_v132_train_set.fa.gz \
  -t 9 --skip_species --verbose TRUE \
- --tax_out $output_direc/all_runs/demult_python/tax_final.rds
+ --tax_out $output_direc/tax_final.rds
 
 echo "Done with taxonomy assignments, moving onto converting dada table"
 
 # generate table
  $amp_general/convert_dada2_out.R -i \
-       $output_direc/all_runs/demult_python/seqtab_final.rds -b $output_direc/all_runs/demult_python/seqtab.biom.tsv -f $output_direc/all_runs/demult_python/seqtab.fasta --taxa_in $output_direc/all_runs/demult_python/tax_final.rds
+       $output_direc/seqtab_final.rds -b $output_direc/seqtab.biom.tsv -f $output_direc/seqtab.fasta -S-taxa_in $output_direc/tax_final.rds
 
 echo "Done with converting dada2 moving on to biom conversion"
 
 # convert table to biom
-biom convert -i $output_direc/all_runs/demult_python/filtered_fastqs/seqtab.biom.tsv -o $output_direc/all_runs/demult_python/filtered_fastqs/seqtab.biom --to-hdf5
+biom convert -i $output_direc/filtered_fastqs/seqtab.biom.tsv -o $output_direc/filtered_fastqs/seqtab.biom --to-hdf5
 
 # add metadata to biom
 biom add-metadata -i seqtab.biom -o seqtab_tax.biom --observation-metadata-fp  taxa_metadata.txt \
