@@ -1,0 +1,399 @@
+---
+title: "Compare methods"
+author: "Talia_Karasov"
+date: "9/18/2019"
+output: html_document
+---
+The goal of this script is to take the output from the process_OTU table Rmd and compare the metagenome and 16S data
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width = 12, fig.height = 8, echo = FALSE, warning = FALSE, message = FALSE, cache = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#library(phyloseq)
+library("phyloseq")
+library(dada2)
+library(dplyr)
+library(tidyverse)
+library(fossil)
+library(reshape2)
+library(cowplot)
+library(intrval)
+#library(msa)
+#library(DECIPHER)
+
+library(genefilter)
+library(phangorn)
+library("RColorBrewer")
+library(gplots)
+library(sjstats)
+library(nlme)
+library(corrplot)
+
+hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744")
+  
+# c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76","#44c181","#d0452f","#4aadd6","#d6812c","#667fc7","#cbaa3b","#9c4769","#7dba6f","#dd809f","#3e8148","#c25d4d","#59c5b0","#de986d","#2f8a72","#91692e","#afb16c","#5f6c2b","#84892d")
+
+```
+
+#Comparison between metagenome and 16S classification
+Every column is a different plant so we need to normalize by column
+```{r}
+metagenome_orig2 = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/meta_family_corrected_per_plant_v2_bacteria.csv", sep=",", header=T, row.names = 1)
+#Pseudomonadaceae     0.864007897140246 5.39616182027885e-175
+
+metagenome_orig1 = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/meta_family_corrected_per_plant.csv", sep=",", header=T, row.names = 1)
+
+#metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/centrifuge_metagenome_table.txt", sep="\t", header=T, row.names = 1)
+#colnames(metagenome_orig)=gsub(".R1.fq.report", "", gsub("..centrifuge_output.", "", colnames(metagenome_orig)))
+
+metagenome1 = sweep(metagenome_orig1, 2, colSums(metagenome_orig1, na.rm=T), FUN="/")
+metagenome2 = sweep(metagenome_orig2, 2, colSums(metagenome_orig2, na.rm=T), FUN="/")
+reorder_2 = metagenome2[,colnames(metagenome1)]
+reorder_1 = metagenome1[rownames(reorder_2),]
+
+###################################################################################################
+## COMPARISON BETWEEN OLD AND NEW PIPELINE, 
+
+plot(as.numeric(as.character(unlist(reorder_1))), as.numeric(as.character(unlist(reorder_2))), pch=20)
+cor.test(as.numeric(as.character(unlist(reorder_1))), as.numeric(as.character(unlist(reorder_2))))
+#metagenome = subset(metagenome, select=-c("family"))
+###################################################################################################
+
+
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+
+```
+
+Now order them the same
+```{r}
+keep_id = colnames(metagenome2)[colnames(metagenome2) %in% colnames(sixteenS)]
+keep_fam = rownames(metagenome2)[rownames(metagenome2) %in% rownames(sixteenS)]
+sixteenS = sixteenS[keep_fam,keep_id]
+metagenome2 = metagenome2[keep_fam, keep_id]
+#sixteenS = as.matrix(sixteenS)
+#metagenome = as.matrix(metagenome)
+```
+
+This doesn't look good (rho=0.28). But it seems to be family-specific. For some families we get good correlations but for others not at all
+```{r}
+cor.test(unlist(metagenome2), unlist(sixteenS))
+
+plot(sqrt(unlist(metagenome2)), sqrt(unlist(sixteenS)), pch = 20, xlab = "Metagenome", ylab = "16S")
+corr_mat=as.data.frame(matrix(ncol = 3, nrow=0))
+colnames(corr_mat) = c("Family", "correlation", "pval")
+for(i in 1:dim(metagenome)[1]){
+  if(is.na(metagenome[i,1])!=TRUE){
+    curr_cor=cor.test(as.numeric(as.character(metagenome[i,])), as.numeric(as.character(sixteenS[i,])))
+    corr_mat[i,]=c(rownames(metagenome)[i], as.numeric(as.character(curr_cor$estimate)), as.numeric(as.character(curr_cor$p.value)))
+  }
+  else{
+    corr_mat[i,]=c(rownames(metagenome)[i], NA, NA)
+  }
+}
+
+```
+
+Limit to top 10 genera
+```{r}
+top10_meta = names(sort(rowSums(metagenome_orig), decreasing = T)[1:10])
+top10_six = names(sort(rowSums(sixteenS), decreasing = T)[1:10])
+u = union(top10_meta, top10_six)
+```
+
+
+
+```{r}
+t_six = data.frame(t(sixteenS))
+t_meta = data.frame(t(metagenome2))
+t_meta$method = "Metagenome"
+t_meta$Plant = rownames(t_meta)
+t_six$method = "SixteenS"
+t_six$Plant = rownames(t_six)
+meta_melt = reshape2::melt(t_meta, variable.name = "Family", value.name = "meta_RA",  idvars = c("Plant", "method"))
+six_melt = reshape2::melt(t_six, variable.name = "Family", value.name = "six_RA", idvars = c("Plant", "method"))
+all_melt = merge(meta_melt, six_melt, by=c("Plant", "Family"))
+all_melt$Family[which(all_melt$Family %ni% u)]=as.factor("Other")
+
+
+comp = ggplot(data = all_melt, aes(x = (six_RA + 0.0001)*100, y = (meta_RA+0.0001)*100, col = Family )) +
+  geom_point() + 
+  scale_color_manual(values = hue1_25) +
+  theme_bw() +
+  geom_abline(slope = 1, linetype = "dashed", color = "Grey", size = 1.0) +
+  scale_x_log10() +
+  scale_y_log10() +
+  xlab("16S RA (%)") +
+  ylab("Metagenome RA (%)") +
+  theme_minimal_hgrid(12, rel_small = 1) +
+  theme(
+    legend.position = "top",
+    legend.justification = "right",
+    legend.text = element_text(size = 9),
+    legend.box.spacing = unit(0, "pt"),
+    legend.title = element_blank()
+  ) +
+  guides(colour = guide_legend(override.aes = list(size=5)))
+  
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/metagenome_vs_16S_final.pdf", family = "ArialMT", useDingbats=FALSE)
+comp
+dev.off()
+```
+
+Limit to top 10 genera
+```{r}
+top10_meta = names(sort(rowSums(metagenome_orig), decreasing = T)[1:10])
+top10_six = names(sort(rowSums(sixteenS), decreasing = T)[1:10])
+u = union(top10_meta, top10_six)
+```
+
+```{r}
+metagenome$family = rownames(metagenome)
+sixteenS$family = rownames(metagenome)
+
+
+meta_melt = melt(metagenome, id="family")
+meta_melt = meta_melt[meta_melt$family%in%u,]
+
+sixteen_melt = melt(sixteenS, id="family")
+sixteen_melt = sixteen_melt[sixteen_melt$family%in%u,]
+p_meta = ggplot(data=meta_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25)
+
+p_16S = ggplot(data=sixteen_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25)
+
+legend1 = get_legend(p_16S)
+
+plot_grid(p_meta + theme(legend.position = "none") , p_16S + theme(legend.position = "none", axis.title.y = element_blank()), legend1, nrow = 1)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/metagenome_vs_16S_disaster.pdf")
+plot_grid(p_meta + theme(legend.position = "none") , p_16S + theme(legend.position = "none", axis.title.y = element_blank()), legend1, nrow = 1)
+dev.off()
+
+```
+
+
+Let's look at raw reads
+```{r}
+meta_uncorrec = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/centrifuge_metagenome_table_bac.txt", sep="\t", header = T, row.names = 1)
+colnames(meta_uncorrec) = gsub(".R1.fq.out", "", colnames(meta_uncorrec))
+rownames(meta_uncorrec) = meta_uncorrec$family
+meta_uncorrec = subset(meta_uncorrec, select=-c(family))
+
+colSums(meta_uncorrec)
+unc_ra = sweep(meta_uncorrec, 2, colSums(meta_uncorrec, na.rm=T), FUN="/")
+
+unc_ra = unc_ra[,colnames(sixteenS)]
+
+shared_fam = intersect(rownames(unc_ra), rownames(sixteenS))
+
+unc_ra = unc_ra[shared_fam,]
+sixten_unc = sixteenS[shared_fam,]
+plot(unlist(unc_ra), unlist(sixten_unc))
+#now combine wwith 16S
+```
+
+
+
+
+#comparing filtering
+How much does the filtering influence the relative abundances?
+```{r}
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family.csv", sep=",", header=T, row.names = 1)))
+sixteenS_5 = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+sixteenS_5 = sweep(sixteenS_5, 2, colSums(sixteenS_5, na.rm=T), FUN="/")
+sixteenS_5 = sixteenS_5[rownames(sixteenS),]
+
+#The filtering does not have a strong influence on the relative abundances
+plot(as.matrix(sixteenS), as.matrix(sixteenS_5), pch=20, xlab="Relative Abundance, filtering at 50", ylab="Relative Abundance, filtering at 5")
+cor.test(as.matrix(sixteenS), as.matrix(sixteenS_5))
+
+```
+
+
+
+#Rescaling the microbiome
+Let's move on for now and rescale our 16S file with the estimated load from the metagenome calculation
+```{r}
+met_orig_sub = metagenome_orig[rownames(sixteenS),colnames(subset(sixteenS, select=-c(family)))]
+to_transform = subset(sixteenS, select=-c(family))
+rescale = sweep(to_transform, 2, colSums(met_orig_sub, na.rm=T), FUN="*")
+
+#Reorder every sample according to load
+rescale = rescale[,order(colSums(met_orig_sub, na.rm=T), decreasing = T)]
+rescale = rescale[order(rowSums(met_orig_sub, na.rm=T),decreasing = T),]
+
+top10 = names(sort(rowSums(to_transform), decreasing = T)[1:10])
+rescale$family=rownames(rescale)
+rescale$family[rescale$family%ni%top10]="Other"
+
+#reorder=sort(colSums(met_orig_sub, na.rm=T), decreasing = T)
+rescale_melt=melt(rescale, id="family")
+
+p_16S = ggplot(data=rescale_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25) +
+  xlab("Plants") +
+  ylab("Microbial Genome/Plant Genome") +
+  theme(axis.text.x=element_blank())
+
+p_16S
+```
+
+Who is the most correlated with load?
+```{r}
+plot(as.numeric(as.character(rescale["Pseudomonadaceae",][1:100])), colSums(met_orig_sub, na.rm=T)[1:100])
+
+corrplot(cor(t(rescale)))
+```
+
+
+What about plotting just the sixteenS data
+```{r}
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+top5 = rownames(sixteenS)[order(rowSums(sixteenS), decreasing = T)][1:8]
+sixteenS$family = rownames(sixteenS)
+sixteenS$family[sixteenS$family %ni% top10]="Other"
+#sixt_rescale = sixteenS[,order(sixteenS["Burkholderiaceae",], decreasing = T)]
+
+#reorder the families in the barplot
+sixt_rescale$family = fct_relevel(sixt_rescale$family, "Other", after = 0)
+sixt_rescale$family = fct_relevel(sixt_rescale$family, "Burkholderiaceae", after = 10)
+
+six_melt = melt(sixt_rescale, id="family")
+#six_melt$variable=reorder(six_melt$variable, six_melt$value, function(x) max(table(x)[1]))
+
+
+p_16S_alone = ggplot(data=six_melt, aes(x = variable, y = value, fill = family)) +
+  geom_bar(aes(), stat="identity", position="stack") +
+  scale_fill_manual(values = hue1_25) +
+  xlab("Plants") +
+  ylab("16S relative Abundance") +
+  theme(axis.text.x=element_blank())
+
+p_16S_alone
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###################################################
+STUFF THAT CAN BE REMOVED LATER
+###################################################
+
+
+#looking at the demultiplexing
+So these results are puzzling. First of all, why does the metagenome say there is so much more Burkholderia than does the 16S analysis. Secondly, there is such a poor correlation between these two datasets. And lastly, why do the controls have so many reads.
+
+So why is burkholderia so common? Let's choose a few samples that have a lot of Burkholderia
+metagenome_orig["Burkholderiaceae",][which(metagenome_orig["Burkholderiaceae",]>2)]
+PA0343   PA0344   PA0367   PA0370   PA0373   PA0376   PA0391   PA0394   PA0397   PA0400   PA0403   PA0406   PA0692   PA0832   PA0842
+
+ PA0895   PA0913   PA1117   PA1119   PA1141   PA1156   PA1179   PA1184   PA1194   PA1196   PA1208   PA1210  PA1214   PA1256   PA1266   PA1268   PA1273
+
+
+PA0913 has 22947 reads for burkholdereacea in centrifuge_metagenome_table.txt
+ST-J00101:116:H23WVBBXY:3:1121:15554:31118 appears five times. It has four of the same taxonomic ranking and one different ranking. 
+
+
+
+The following read was assigned to PA0480: 
+@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 1:N:0:CATGGACGTCTTTCCC
+GACCTACGGGAGGCAGCAGTGGGGAATTTTCCGCAATGGGCGCAAGCCTGACGGAGCAATGCCGCGTGGAGGTAGAAGGCCTACGGGTCCTGNACTTCTTTTCCCAGAGAAGAAGCAATGACGGTATCTGGGGAATAAGCATCGTCTAACTCTGTGCCAGCAGCCGCGGTAATACAGAGGATGCAAGCGTTATCCGGAATGATTGGGCGTAACGCGTCTGTAGGTGGCTGTTTAAGTCCGCCGTCAACTCCCAGGGCTAAACCCTGGACAGGCGGTGGAAACTACCAAGCTTGAGTACGG
+
+Reverse read:
+@HWI-M00333R1:141:000000000-BWDK4:1:2115:11050:21251 2:N:0:CATGGACGTCTTTCCC
+TGACTACGGACTACTGGGGTATCTAATCCCATTCGCTCCCCTAGCTTTCGTCTCTCAGTGTCAGTGTCGGCCCAGCAGAGTGCTTTCGCCGTTGGTGTTCTTTCCGATCTCTACGCATTTCACCGCTCCACCGGAAATTCCCTCTGCCCCTACCGTACTCAAGCTTGGTAGTTTCCACCGCCTGTCCAGGGTTGAGCCCTGGGATTTGACGGCGGACTTAAAAACCCCCCTACAGACGTTTTACCCCCAATCCTTCCGGATAACCTTTACCTCACCTTTTTTACCTCGGCTGCTGCCACC
+
+What do I know about this sample?
+"CATGGACG TCTTTCCC" corresponds to ???
+
+What went wrong in the demultiplexing here? This reverse reads starts with "TGACTACGGACTAC" so why was it assigned to an index that should be 806.F5?
+
+PA0480		plate7	C7	341F1.806F5
+The barcode for position C7 is C7,,,,,CATGGACGC,,AGATCTCG,pathodopsis_16S,TaliaKarasov
+F1 = GACCTACGGGAGGCAGCAG
+F5(R) = GTAGTCCGTAGTC
+
+if I understand the problem correctly, then these reads should also be in there:
+@HWI-M00333R1:141:000000000-BWDK4:1:2119:15080:24654 2:N:0:CATGGACGTCTTTCCC
+@HWI-M00333R1:141:000000000-BWDK4:1:2119:15004:24265 2:N:0:CATGGACGTCTTTCCC
+@HWI-M00333R1:141:000000000-BWDK4:1:2119:10067:23999 2:N:0:CATGGACGTCTTTCCC
+
+In my demuliplexing from a few months ago this read was place in the PA0480 file:
+@HWI-M00333R1:141:000000000-BWDK4:1:1101:10539:5772 1:N:0:CATGGACGTCTTTCCC
+reverse read:
+GACTACGGACTACTAGGGTTTCTAATCTGGAGTTCAGACGTGCGCTCTTCTGCTGCCTCCCGTAGGTCAGATCGGAAGAGCGTCGTGCAGGGAAAGAGCGTAGAGCTCGGTGGTCGTTGCACCACTAAAAAAAGAATTCCAGTCACCACTCACGAACTCTAGTCCGCCCGTATCAAAGTCAGACCCGTAATTTAGCCCAGTGCTTTTGACTCCGCCGCAACGCACCGACTACTGAGTCATTACGCCCAATACATCATGTCCACGCGACCCCCCTACGTGATACCTACTCTTCTTGCCAGC
+
+This was the proper demultiplexing...I wonder what is going on now...
+This directory seems to be oK
+/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_12_2018/demult_python
+
+
+OK I stripped again. This read was present in the stripped file. and in the all. file
+@HWI-M00333R1:141:000000000-BWDK4:1:1101:14324:2477 2:N:0:CATGGACGTCTTTCCC
+CCTGTTCGCTCCCCATGCTTTCGCTCCTCAGCGTCAGGTAATGCCCAGAGAACCGCCTTCGCCACCGGTGTTCCTCCTGATATCTGCGCATTTCACCGCTACACCCGGAATTCCGTTCTCCCCTTCATACCTCTAGTCTGCCCGTATCGAAAGCCAGCCAGGTGTTAAGCACCGGGTTTTCACTCCCGACGCGACCAACCGCCTCCGAGCCCTTTACGCCCAATAATTCCGTACCACGCTTGCCCCCTACGTATTACCTCAGCTTCTGGCCCGC
+
+
+
+So the same run was demultiplexed incorrectly now...why would this be?
+I think the issue was in my clip_barcodes_after_python.sh script. The samples look good until the stripping.

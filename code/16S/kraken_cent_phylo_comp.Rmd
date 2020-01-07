@@ -1,0 +1,68 @@
+---
+title: "kraken_cent_phylo_comp"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(remotes)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+To get a kreport
+#centrifuge-kreport -x /ebio/abt6_projects9/metagenomic_controlled/database/nt /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/PA0610.R1.fq.report
+```{r}
+kreport = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/PA0610.R1.fq.kraken.report", sep="\t")
+colnames(kreport) = c("percent_frag", "num_reads", "assign_direct", "Class", "ncbi_id", "Organism")
+k_fam = kreport[which(kreport$Class=="F"),]
+k_fam$Organism=trimws(k_fam$Organism)
+
+metagenome_orig = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/centrifuge_output/centrifuge_metagenome_table.txt", sep="\t", header=T, row.names = 1)
+sam_cent = metagenome_orig$..centrifuge_output.PA0610.R1.fq.report
+names(sam_cent)=rownames(metagenome_orig)
+sam_cent=sam_cent[which(names(sam_cent)%in%k_fam$Organism)]
+k_fam1=k_fam[which(k_fam$Organism%in%names(sam_cent)),]
+k_fam1$my_cent = sam_cent[k_fam1$Organism]
+
+#There is something seriously wrong with the different between these two
+plot(k_fam1$num_reads, k_fam1$my_cent)
+
+#for this sample I estimated 67029 reads and k_report estimate 1629 classified at the family level of the shared families. 3287 when I don't limit to these shared families.
+#Let's compare to the 16S results
+
+sixteenS = as.data.frame(t(read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/sixteenS_family5.csv", sep=",", header=T, row.names = 1)))
+
+sixteenS = sweep(sixteenS, 2, colSums(sixteenS, na.rm=T), FUN="/")
+my_16S = sixteenS$PA0610
+names(my_16S) = rownames(sixteenS)
+k_fam$my_16S = my_16S[k_fam$Organism]
+k_fam$my_cent = sam_cent[k_fam$Organism]
+
+
+plot(k_fam$my_16S, k_fam$num_reads,  col="RED")
+points(k_fam$my_16S, k_fam$my_cent, pch=20)
+
+cor.test(k_fam$my_16S, k_fam$num_reads)
+cor.test(k_fam$my_16S, k_fam$my_cent)
+```
+
+So the data for the kraken report are much better correlated with the 16S data than is my centrifuge output. OK. So there is a major error in my code. Still within a sample the data don't look great. 
