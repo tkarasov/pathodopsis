@@ -61,6 +61,10 @@ echo "Done with taxonomy assignments, moving onto converting dada table"
 
 echo "Done with converting dada2 moving on to biom conversion"
 
+# Create phylogeny from table. This function takes a lot of memory also
+$amp_general/after_dada2_make_tree.R
+
+
 # convert table to biom
 biom convert -i $output_direc/filtered_fastqs/seqtab.biom.tsv -o $output_direc/filtered_fastqs/seqtab.biom --to-hdf5
 
@@ -73,3 +77,5 @@ biom summarize-table -i seqtab.biom -o seqtab_summary.txt
 
 #if I want to rarefy???
 # single_rarefaction.py -i seqtab_tax.biom -o seqtab_tax_rarified.biom -d 4000
+
+

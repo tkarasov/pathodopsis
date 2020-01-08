@@ -1,0 +1,42 @@
+#!/usr/bin/env Rscript
+
+library(phyloseq)
+library(dada2)
+library(dplyr)
+library(tidyverse)
+library(genefilter)
+library(DECIPHER)
+library(microbiome)
+
+#This script is supposed to take the OTUs from dada2 and create a tree. The tutorial from which this code is pilfered can be found here: https://compbiocore.github.io/metagenomics-workshop/assets/DADA2_tutorial.html
+
+
+path="/ebio"
+source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/amp_seq_functions.R", sep=""))
+output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
+#output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/"
+
+seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
+taxa = readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
+
+sequences<-getSequences(seqtab.nochim)
+names(sequences)<-sequences
+
+print("Now starting alignment")
+
+#This next step of aligning takes A LOT OF MEMORY. I had to reserve 8CPUs at 64Gb RAM per CPU
+alignment <- AlignSeqs(DNAStringSet(sequences), anchor=NA, processors = NULL, verbose = TRUE)
+
+phang.align <- phyDat(as(alignment, "matrix"), type="DNA")
+
+dm <- dist.ml(phang.align)
+
+treeNJ <- NJ(dm) # Note, tip order != sequence order
+
+fit = pml(treeNJ, data=phang.align)
+
+fitGTR <- update(fit, k=4, inv=0.2)
+fitGTR <- optim.pml(fitGTR, model="GTR", optInv=TRUE, optGamma=TRUE,
+                    rearrangement = "stochastic", control = pml.control(trace = 0))
+
+save.image("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
