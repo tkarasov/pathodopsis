@@ -30,4 +30,10 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 
 ### Metagenomics
 
-### Spatial Analysis
+### Climate and Species associations
+* [Koppen Geiger climate classification](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/climate_classification.R)
+* [General association between whole dataset and climate/species variables](https://github.com/tkarasov/pathodopsis/blob/master/code/modeling_general/permanova_OTU.R)
+
+
+### Genus and ASV-specific associations
+* [OTU5 Kriging distribution](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/kriging_OTU5_map.R)
