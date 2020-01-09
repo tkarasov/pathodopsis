@@ -15,12 +15,12 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 
 ### 16S/ITS Analysis
 #### Demultiplexing
-* [Bash script to run demultiplexing pipeline](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/process_step1_demultiplex_16S_phyllosphere_all.sh
-* [Demultiplexing python script](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/demultiplex_16S_non_flashed.py)
+* [Bash scriptto demuliplexing pipeline](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/process_step1_demultiplex_16S_phyllosphere_all.sh)
+* [Demultiplexing python script (called by two sequential bash scripts)](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/demultiplex_16S_non_flashed.py)
 * [Bash script to clip barcodes](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/clip_barcodes_after_python.sh)
 
 #### Running dada2 to filter data and call ASVs
-* [Bash script to call](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/process_step2_rundada2_16S.sh)
+* [Bash script to run dada2 pipeline](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/process_step2_rundada2_16S.sh)
 * [dada2 filter]
 * [dada2_inference of ASVs]
 * [taxonomy assignment]
