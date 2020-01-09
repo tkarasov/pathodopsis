@@ -21,10 +21,12 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 
 #### Running dada2 to filter data and call ASVs
 * [Bash script to run dada2 pipeline](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/process_step2_rundada2_16S.sh)
-* [dada2 filter]
-* [dada2_inference of ASVs]
-* [taxonomy assignment]
-* [phylogeny]
+* [dada2 filter_tlk](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/dada2_filter.R)
+* [dada2_inference of ASVs](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/dada2_inference_tlk.R)
+* [taxonomy assignment and chimera removal](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/dada2_chimera_taxa.R)
+* [generate OTU table](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/convert_dada2_out.R)
+* [make filtered OTU table](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/after_dada2_make_otutable_generic.R)
+* [phylogeny](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/after_dada2_make_tree.R)
 
 ### Metagenomics
 
