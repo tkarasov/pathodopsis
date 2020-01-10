@@ -16,16 +16,25 @@ source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code
 output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
 #output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/"
 
-seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
-taxa = readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
+#######################################################################
+# Read in Phyloseq object
+#######################################################################
+# seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
+# taxa = readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
 
-sequences<-getSequences(seqtab.nochim)
+# Load the phyloseq object generated in after_dada2_make_otutable
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
+sequences<-taxa_names(GP50)
 names(sequences)<-sequences
 
+#######################################################################
+# Read in Phyloseq object
+#######################################################################
 print("Now starting alignment")
 
 #This next step of aligning takes A LOT OF MEMORY. I had to reserve 8CPUs at 64Gb RAM per CPU
 alignment <- AlignSeqs(DNAStringSet(sequences), anchor=NA, processors = NULL, verbose = TRUE)
+save(alignment, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_alignment.rds")
 
 phang.align <- phyDat(as(alignment, "matrix"), type="DNA")
 
@@ -39,4 +48,7 @@ fitGTR <- update(fit, k=4, inv=0.2)
 fitGTR <- optim.pml(fitGTR, model="GTR", optInv=TRUE, optGamma=TRUE,
                     rearrangement = "stochastic", control = pml.control(trace = 0))
 
-save.image("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
+#######################################################################
+# Save tree to image
+#######################################################################
+save(figGTR, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")

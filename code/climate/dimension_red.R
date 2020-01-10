@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+
 #the goal of this script is to take the full metagenome table and subset to only those htat have the highest variance
 library("rwunderground")
 

@@ -65,9 +65,15 @@ rm(seqtab.nochim,taxa)
 # Filtering data
 #######################################################################
 #Remove samples with fewwer than 1000 reads
-GP = prune_samples(sample_sums(ps)>=1000, ps)
-GP = prune_samples(sample_data(GP)$TourID!="NA", GP)
+GP0 = prune_samples(sample_sums(ps)>=1000, ps)
+GP = prune_samples(is.na(sample_data(GP0)$TourID)==FALSE, GP0)
 rm(ps)
+
+# #rename species for soil to "Soil". This doesn't work. Need to add factor level but don't see how to do this in phyloseq object.
+# is_soil = which(sample_data(GP)[,"Sample_type"] == "SOIL")
+# sample_data(GP)[is_soil,"Species"] = as.character(sample_data(GP)[is_soil,"Species"])
+# sample_data(GP)[is_soil,"Species"] <- as.factor("SOIL")
+
 
 #Now for taxa names
 dna <- Biostrings::DNAStringSet(taxa_names(GP))
@@ -87,7 +93,7 @@ GP_fam=tax_glom(GP50, "Family")
 #qGPr  = transform_sample_counts(GP, function(otu) otu/sum(otu))
 rm(GP)
 
-
+save(GP50, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
 #######################################################################
 # Write ASVs to file and OTU table
 #######################################################################
