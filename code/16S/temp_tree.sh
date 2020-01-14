@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #  Reserve 16 CPUs for this job
-#$ -pe parallel 8
+#$ -pe parallel 16
 #  Request 64G of RAM per core
 #$ -l h_vmem=64G
 #$ -o $HOME/tmp/stdout_of_job_dada2

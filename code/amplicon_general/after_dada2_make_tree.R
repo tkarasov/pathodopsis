@@ -7,6 +7,7 @@ library(tidyverse)
 library(genefilter)
 library(DECIPHER)
 library(microbiome)
+library(phangorn)
 
 #This script is supposed to take the OTUs from dada2 and create a tree. The tutorial from which this code is pilfered can be found here: https://compbiocore.github.io/metagenomics-workshop/assets/DADA2_tutorial.html
 
@@ -33,8 +34,9 @@ names(sequences)<-sequences
 print("Now starting alignment")
 
 #This next step of aligning takes A LOT OF MEMORY. I had to reserve 8CPUs at 64Gb RAM per CPU
-alignment <- AlignSeqs(DNAStringSet(sequences), anchor=NA, processors = NULL, verbose = TRUE)
-save(alignment, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_alignment.rds")
+alignment <- AlignSeqs(refseq(GP50), anchor=NA, processors = 8, verbose = TRUE) 
+  #AlignSeqs(DNAStringSet(sequences), anchor=NA, processors = NULL, verbose = TRUE)
+save(alignment, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_alignment.rds")
 
 phang.align <- phyDat(as(alignment, "matrix"), type="DNA")
 
@@ -51,4 +53,4 @@ fitGTR <- optim.pml(fitGTR, model="GTR", optInv=TRUE, optGamma=TRUE,
 #######################################################################
 # Save tree to image
 #######################################################################
-save(figGTR, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
+save(figGTR, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
