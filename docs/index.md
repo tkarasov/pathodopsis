@@ -31,7 +31,7 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 ### Metagenomics
 
 ### Climate and Species associations
-* [Koppen Geiger climate classification](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/climate_classification.R)
+* [Permanova and Koppen Geiger climate classification](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/climate_classification.R)
 * [General association between whole dataset and climate/species variables](https://github.com/tkarasov/pathodopsis/blob/master/code/modeling_general/permanova_OTU.R)
 * [Random forest regression on various climatic variables](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/random_forest.R)
 
