@@ -27,8 +27,7 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 * [generate OTU table](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/convert_dada2_out.R)
 * [make filtered OTU table](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/after_dada2_make_otutable_generic.R)
 * [phylogeny](https://github.com/tkarasov/pathodopsis/blob/master/code/amplicon_general/after_dada2_make_tree.R)
-
-### Metagenomics
+* [Major phylotypes](https://github.com/tkarasov/pathodopsis/blob/master/code/16S/dominant_phylotypes.R)
 
 ### Climate and Species associations
 * [Permanova and Koppen Geiger climate classification](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/climate_classification.R)
@@ -37,3 +36,5 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 
 ### Genus and ASV-specific associations
 * [OTU5 Kriging distribution](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/kriging_OTU5_map.R)
+
+### Metagenomics
