@@ -15,7 +15,7 @@ library(phangorn)
 path="/ebio"
 source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/amp_seq_functions.R", sep=""))
 output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
-#output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/"
+#output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S  _all/"
 
 #######################################################################
 # Read in Phyloseq object
@@ -53,4 +53,4 @@ fitGTR <- optim.pml(fitGTR, model="GTR", optInv=TRUE, optGamma=TRUE,
 #######################################################################
 # Save tree to image
 #######################################################################
-save(figGTR, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
+save(fitGTR, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")

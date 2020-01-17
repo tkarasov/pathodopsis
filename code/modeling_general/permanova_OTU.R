@@ -20,13 +20,6 @@ genot_dir = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/"
 output_direc = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
 
 
-
-#######################################################################
-# Calculate kinship
-#######################################################################
-ibs = make_kinship(vcf = vcf)
-kinship = ibs$ibs
-
 #######################################################################
 # Read in Phyloseq object
 #######################################################################

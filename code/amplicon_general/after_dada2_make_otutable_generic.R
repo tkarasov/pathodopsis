@@ -22,6 +22,7 @@ seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
 taxa = readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
 metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course3.txt", header=T, sep="\t")
 
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
 
 #Data is read in, now we want to subset it properly to rename the controls (1:26) and give metadata
 controls <- grep("control", rownames(seqtab.nochim),ignore.case=TRUE,value=TRUE)
@@ -84,15 +85,21 @@ rm(dna)
 
 #FYI: you can access the sequence by refeseq(GP)
 
-#Remove mitochondria and samples that have fewer than 50 reads in any sample
+#Remove mitochondria and ASVs that have fewer than 50 reads in any sample
 mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
 GP = prune_taxa(mito, GP)
+
 flist    <- filterfun(kOverA(1, 50))
 GP50 = filter_taxa(GP, flist, TRUE )
+GP50 = merge_phyloseq(GP50, fitGTR$tree)
 GP_fam=tax_glom(GP50, "Family")
+
+set.seed(4)
+GP1000 = rarefy_even_depth(GP50, sample.size = 1000)
 #qGPr  = transform_sample_counts(GP, function(otu) otu/sum(otu))
 rm(GP)
 
+save(GP1000, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000.rds")
 save(GP50, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
 #######################################################################
 # Write ASVs to file and OTU table
