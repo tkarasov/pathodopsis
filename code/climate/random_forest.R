@@ -65,7 +65,7 @@ all_metadata = filter(all_metadata, Host_Species == "Ath")
 # When I performed random forests with some variables I got negative variance explained. 
 # http://developmentaldatascience.org/post/29-01-18_metaforest_no_effect/
 
-my_var = "Total_load"
+my_var = "OTU5" #"Total_load"
 
 # Limit to only non-soil
 data1 = filter(all_metadata, Used_for == "M")
@@ -73,7 +73,7 @@ is_na = is.na(data1[,my_var])
 #data1 = data1[!is_na,]
 
 # Relevant variables
-rel = c("Tour_ID", "Latitude", "Longitude", "vpd.6", "ppt.6", "PDSI.6", "ClimateZ", "soil.6", "pet.6", "def.6", "tmax.6", "tmin.6", "First_Kop", "aet.6", "srad.6", my_var) #, my_var, "Peronosporaceae",
+rel = c("Tour_ID", "Lat.x", "Long.x", "vpd.6", "ppt.6", "PDSI.6", "ClimateZ", "soil.6", "pet.6", "def.6", "tmax.6", "tmin.6", "First_Kop", "aet.6", "srad.6", my_var) #, my_var, "Peronosporaceae",
 data1 = data1[,rel]
 #remove samples with any NAs
 data1 = data1[complete.cases(data1),]

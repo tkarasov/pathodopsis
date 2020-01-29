@@ -51,7 +51,7 @@ if( !is.null(taxonomy) ){
   taxonomy = data.frame(as(taxonomy, "matrix"))
 } 
 # Now turn into a DGEList
-d = DGEList(counts=m, genes=taxonomy, remove.zeros = TRUE)
+d = DGEList(counts=t(m), genes=taxonomy, remove.zeros = TRUE)
 
 # Calculate the normalization factors
 z = calcNormFactors(d, method="RLE")
@@ -61,9 +61,101 @@ if( !all(is.finite(z$samples$norm.factors)) ){
        non-finite $norm.factors, consider changing `method` argument")
 }
 
+plotMDS(z, col = as.numeric(factor(sample_data(GP_at15_all)$Species)), labels = as.numeric(factor(sample_data(GP_at15_all)$Species)))
 
 
 
+# #######################################################################
+# Test difference between soil and not soil
+# #######################################################################
+
+# Creat a model based on Slash_pile_number and depth
+mm <- model.matrix(~ Sample_type, data=data.frame(as(sample_data(GP_at15_all),"matrix"))) # specify model with no intercept for easier contrasts
+
+y <- voom(d, mm, plot = T)
+fit <- lmFit(y, mm)
+head(coef(fit))
+
+
+# Comparison between cultivars C and I5 at time 6
+contr <- makeContrasts(Sample_type = "Sample_typeSOIL",
+                       levels = colnames(coef(fit)))
+
+tmp <- contrasts.fit(fit, contr)
+tmp <- eBayes(tmp)
+tmp2 <- topTable(tmp, coef=1, sort.by = "P", n = Inf)
+tmp2$Taxa <- rownames(tmp2)
+tmp2 <- tmp2[,c("Taxa","logFC","AveExpr","P.Value","adj.P.Val")]
+length(which(tmp2$adj.P.Val < 0.05)) # number of DE genes
+
+#sig_tab_diff <- 
+sigtab = cbind(as(tmp2, "data.frame"), as(tax_table(GP_at15_all)[rownames(tmp2), ], "matrix"))
+theme_set(theme_bw())
+scale_fill_discrete <- function(palname = "Set1", ...) {
+  scale_fill_brewer(palette = palname, ...)
+}
+sigtabgen = subset(sigtab, !is.na(Genus))
+# Phylum order
+x = tapply(sigtabgen$logFC, sigtabgen$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtabgen$Phylum = factor(as.character(sigtabgen$Phylum), levels = names(x))
+# Genus order
+x = tapply(sigtabgen$logFC, sigtabgen$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtabgen$Genus = factor(as.character(sigtabgen$Genus), levels = names(x))
+
+diff_soil_non_soil <- ggplot(sigtabgen, aes(x = Genus, y = logFC, color = Phylum)) + geom_point(size=3) + 
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d()
+
+
+# #######################################################################
+# Test difference thaliana and capsella
+# #######################################################################
+
+# Creat a model based on Slash_pile_number and depth
+mm <- model.matrix(~ Species, data=data.frame(as(sample_data(GP_at15_all),"matrix"))) # specify model with no intercept for easier contrasts
+
+y <- voom(d, mm, plot = T)
+fit <- lmFit(y, mm)
+head(coef(fit))
+
+
+# Comparison between cultivars C and I5 at time 6
+contr <- makeContrasts(SpeciesAth - SpeciesCap,
+                       levels = colnames(coef(fit)))
+
+tmp <- contrasts.fit(fit, contr)
+tmp <- eBayes(tmp)
+tmp2 <- topTable(tmp, coef=1, sort.by = "P", n = Inf)
+tmp2$Taxa <- rownames(tmp2)
+tmp2 <- tmp2[,c("Taxa","logFC","AveExpr","P.Value","adj.P.Val")]
+length(which(tmp2$adj.P.Val < 0.05)) # number of DE genes
+
+
+sigtab = cbind(as(tmp2, "data.frame"), as(tax_table(GP_at15_all)[rownames(tmp2), ], "matrix"))
+theme_set(theme_bw())
+scale_fill_discrete <- function(palname = "Set1", ...) {
+  scale_fill_brewer(palette = palname, ...)
+}
+sigtabgen = subset(sigtab, !is.na(Genus))
+# Phylum order
+x = tapply(sigtabgen$logFC, sigtabgen$Phylum, function(x) max(x))
+x = sort(x, TRUE)
+sigtabgen$Phylum = factor(as.character(sigtabgen$Phylum), levels = names(x))
+# Genus order
+x = tapply(sigtabgen$logFC, sigtabgen$Genus, function(x) max(x))
+x = sort(x, TRUE)
+sigtabgen$Genus = factor(as.character(sigtabgen$Genus), levels = names(x))
+
+diff_cap_ath <- ggplot(sigtabgen, aes(x = Genus, y = logFC, color = Phylum)) + geom_point(size=3) + 
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d()
+
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/diff_abundance_soil_capsella.pdf", height = 12, width = 15,
+    useDingbats = FALSE, font = "ArialMT")
+plot_grid(diff_soil_non_soil + ylab("logFC(Soil/Plant)"), diff_cap_ath + ylab("logFC(Cap/Athal)"), nrow = 2)
+dev.off()
 
 
 # #######################################################################
