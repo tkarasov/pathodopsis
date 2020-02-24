@@ -10,6 +10,24 @@ hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#1
 #hue1_25 = c("#bf82cc","#5bc14d","#bf4db3","#9fba36","#7861ce","#4d8c28","#d83e76","#44c181","#d0452f","#4aadd6","#d6812c","#667fc7","#cbaa3b","#9c4769","#7dba6f","#dd809f","#3e8148","#c25d4d","#59c5b0","#de986d","#2f8a72","#91692e","#afb16c","#5f6c2b","#84892d")
 
 #######################################################################
+# Merge metadata
+#######################################################################
+clim_gen = read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/terraclim_1_2020.csv", sep = ",", header = T)
+
+#my metadata
+metadata_old = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course3.txt", header=T, sep="\t") %>% 
+  select(c("Sequence_ID", "Tour_ID", "Site_ID", "Plant_ID", "Albugo", "Necrosis", "Used_for", "Host_Species", "ClimateZ", "Land_cov"))
+
+
+# #merge all metadata
+all_metadata = metadata_old %>% full_join(clim_gen, by = c("Site_ID", "Tour_ID"))
+write.csv(all_metadata, "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_1_2020_reads.csv", col.names = TRUE, quote = FALSE, row.names = F)
+#Make variable that is only first letter of Koppen-Geiger
+#all_metadata$First_Kop = substr(all_metadata$ClimateZ, 1,1)
+
+metadata = read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_1_2020_reads.csv", header=T, sep=",", fill =TRUE)
+
+#######################################################################
 # Reading in data and setting up relevant formats
 #######################################################################
 
@@ -20,36 +38,60 @@ output_direc="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/
 
 seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
 taxa = readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
-metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course3.txt", header=T, sep="\t")
+#metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course3.txt", header=T, sep="\t")
 
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU_tree.RData")
 
 #Data is read in, now we want to subset it properly to rename the controls (1:26) and give metadata
-controls <- grep("control", rownames(seqtab.nochim),ignore.case=TRUE,value=TRUE)
+control <-"Control|CONTROL|control"
+controls <- grep(control, rownames(seqtab.nochim),ignore.case=TRUE,value=TRUE)
 control_index <- which(rownames(seqtab.nochim) %in% controls)
 empty <- grep("empty", rownames(seqtab.nochim),ignore.case=TRUE,value=TRUE)
 empty_index <- which(rownames(seqtab.nochim) %in% empty)
 samples.out <- sapply(strsplit(rownames(seqtab.nochim),"_plate"), "[",1)
 
 # keep the control names in the name 
-samples.out[control_index]= controls
-samples.out[empty_index] = empty
+samples.out[control_index]= paste(controls, c(1:length(controls)), sep = "_")
+samples.out[empty_index] = paste(empty, c(1:length(empty)), sep = "_")
 rownames(seqtab.nochim) = samples.out
 metadata_keep=metadata[metadata$Plant_ID%in%samples.out,]
 meta_unique = metadata_keep %>% distinct()
 metadata_organized=merge(data.frame(samples.out), meta_unique, by.x="samples.out", by.y="Sequence_ID", all.x=TRUE)
 subject <- sapply(strsplit(samples.out, "D"), `[`, 1)
 
+#remove the three duplicated samples
+
+metadata_organized<-metadata_organized[which(!duplicated(metadata_organized$samples.out)),]
+
+
+# samdf <- data.frame(Subject=metadata_organized$samples.out, 
+#                     Latitude=metadata_organized$Lat, 
+#                     Longitude=metadata_organized$Long, 
+#                     Altitude=metadata_organized$Altitude, 
+#                     hpa=metadata_organized$HpA_plant, 
+#                     TourID=metadata_organized$Tour_ID, 
+#                     Clim=metadata_organized$ClimateZ,
+#                     PlantID = metadata_organized$Plant_ID,
+#                     Sample_type = metadata_organized$Used_for,
+#                     Species = metadata_organized$Host_Species)
+
 samdf <- data.frame(Subject=metadata_organized$samples.out, 
                     Latitude=metadata_organized$Lat, 
                     Longitude=metadata_organized$Long, 
-                    Altitude=metadata_organized$Altitude, 
-                    hpa=metadata_organized$HpA_plant, 
+                    Elevation=metadata_organized$Elevation, 
+                    #hpa=metadata_organized$HpA_plant, 
                     TourID=metadata_organized$Tour_ID, 
                     Clim=metadata_organized$ClimateZ,
                     PlantID = metadata_organized$Plant_ID,
+                    SiteID = metadata_organized$Site_ID,
                     Sample_type = metadata_organized$Used_for,
-                    Species = metadata_organized$Host_Species)
+                    Species = metadata_organized$Host_Species,
+                    Soil_temp = metadata_organized$Soil_temp,
+                    ClimateZ = metadata_organized$ClimateZ,
+                    Land_cov = metadata_organized$Land_cov,
+                    tmax = metadata_organized$tmax.6,
+                    tmin = metadata_organized$tmax.6)
+
 rownames(samdf) <- samdf$Subject
 sample_names(seqtab.nochim)=samples.out
 
@@ -97,10 +139,12 @@ GP_fam=tax_glom(GP50, "Family")
 set.seed(4)
 GP1000 = rarefy_even_depth(GP50, sample.size = 1000)
 #qGPr  = transform_sample_counts(GP, function(otu) otu/sum(otu))
-rm(GP)
+
 
 save(GP1000, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000.rds")
 save(GP50, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
+save(GP, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP.rds")
+rm(GP)
 #######################################################################
 # Write ASVs to file and OTU table
 #######################################################################

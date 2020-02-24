@@ -13,6 +13,7 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP10
 #subset to only athaliana
 GP_athal <- subset_samples(GP1000, Species == "Ath")
 
+
 ####################################################################################
 # Subset to ASVs present in at least 5% of samples
 ####################################################################################

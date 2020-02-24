@@ -153,7 +153,7 @@ OTU5_point <-
   scale_y_continuous(expand = c(0,0), limits = c(ymin_plot, ymax_plot)) +
   scale_x_continuous(expand = c(0,0), limits = c(xmin_plot, xmax_plot)) +
   theme_opts + 
-  theme_pubs +
+  #theme_pubs +
   xlab(label = NULL) +
   ylab(label = NULL)
 
@@ -178,13 +178,16 @@ krig_OTU5 <-
                        labs(size="OTU5 RA(%)"), 
                        breaks = seq(0,1,.05)) +
   theme_opts +
-  theme_pubs  +
+  #theme_pubs  +
   xlab(label = NULL) +
   ylab(label = NULL)
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.pdf", family = "ArialMT", useDingbats = F)
-plot_grid(OTU5_point, krig_OTU5)
+otu5_grid <-plot_grid(OTU5_point, krig_OTU5, nrow = 2)
+otu5_grid
 dev.off()
+
+save(otu5_grid, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.rds" )
 
 
 ####################################################################################
