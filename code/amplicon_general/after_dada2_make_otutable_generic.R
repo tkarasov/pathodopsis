@@ -12,20 +12,21 @@ hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#1
 #######################################################################
 # Merge metadata
 #######################################################################
-clim_gen = read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/terraclim_1_2020.csv", sep = ",", header = T)
+clim_gen = read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/terraclim_2_27_2020.csv", sep = " ", header = T)
 
 #my metadata
 metadata_old = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Pathodopsis_site_metadata_20190808_CZ_course3.txt", header=T, sep="\t") %>% 
   select(c("Sequence_ID", "Tour_ID", "Site_ID", "Plant_ID", "Albugo", "Necrosis", "Used_for", "Host_Species", "ClimateZ", "Land_cov"))
 
+metadata_rebecca = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Meta_table_from_rebecca_2_2020 - Data.tsv", sep ="\t", header = T)
 
 # #merge all metadata
-all_metadata = metadata_old %>% full_join(clim_gen, by = c("Site_ID", "Tour_ID"))
-write.csv(all_metadata, "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_1_2020_reads.csv", col.names = TRUE, quote = FALSE, row.names = F)
+all_metadata = metadata_old %>% full_join(clim_gen, by = c("Site_ID", "Tour_ID")) %>% full_join(metadata_rebecca)
+write.table(all_metadata, "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv", col.names = TRUE, sep = '\t', quote = FALSE, row.names = F)
 #Make variable that is only first letter of Koppen-Geiger
 #all_metadata$First_Kop = substr(all_metadata$ClimateZ, 1,1)
 
-metadata = read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_1_2020_reads.csv", header=T, sep=",", fill =TRUE)
+metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv", header=T, sep="\t", fill =TRUE)
 
 #######################################################################
 # Reading in data and setting up relevant formats
@@ -90,7 +91,9 @@ samdf <- data.frame(Subject=metadata_organized$samples.out,
                     ClimateZ = metadata_organized$ClimateZ,
                     Land_cov = metadata_organized$Land_cov,
                     tmax = metadata_organized$tmax.6,
-                    tmin = metadata_organized$tmax.6)
+                    tmin = metadata_organized$tmax.6,
+                    rosette_diam = metadata_organized$R_diameter,
+                    herbivory = metadata_organized$Herbivory)
 
 rownames(samdf) <- samdf$Subject
 sample_names(seqtab.nochim)=samples.out

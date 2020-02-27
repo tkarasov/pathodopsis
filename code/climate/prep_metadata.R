@@ -10,14 +10,14 @@ library(phyloseq)
 
 #the goal of this script is to prep the metadata for random forest
 
-metadata = read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_1_2020_reads.csv", header=T, fill =TRUE) %>% select(-c(X, X.1, X.2))
+metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv", header=T, fill =TRUE, sep = "\t") #%>% select(-c(X, X.1, X.2))
 
 #choose only A. thaliana
 all_metadata = metadata #filter(metadata, Host_Species == "Ath")
 
 #rename Host_species column and remove used_for
 all_metadata$Host_Species = as.character(all_metadata$Host_Species)
-all_metadata[all_metadata$Used_for == "SOIL",]$Host_Species = "Soil"
+all_metadata[which(all_metadata$Used_for == "SOIL"),]$Host_Species = "Soil"
 all_metadata$Host_Species = as.factor(all_metadata$Host_Species)
 all_metadata = all_metadata %>% select(-c(Used_for))
 
@@ -33,7 +33,8 @@ many <- c("tmax", "tmin", "vap", "ppt", "srad", "soil", "ws", "aet", "def", "PDS
 
 for(val in many){
   rel = colnames(all_metadata)[startsWith(colnames(all_metadata), val)]
-  mean_val = rowMeans(all_metadata[,rel], na.rm =T)
+  rel_mat <-data.frame(lapply(all_metadata[,rel], function(x) as.numeric(as.character(x))))
+  mean_val = rowMeans(rel_mat, na.rm =T)
   all_metadata <- all_metadata %>% select(-c(rel))
   all_metadata[,val] = mean_val
 }
@@ -44,6 +45,14 @@ data_frame_predictors <- all_metadata
 
 #too many factors
 facs <- unlist(lapply(data_frame_predictors, is.factor)) 
+
+#convert factors to factors and other to other
+factor_table <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Meta_table_from_rebecca_2_2020 - variable_types.tsv", header = T, sep = "\t", fill = T, row.names = 1)
+is_factor <- colnames(factor_table)[which(factor_table["Type",]=="Qualitative")]
+not_factor <- colnames(factor_table)[which(factor_table["Type",]=="Quantitative")]
+all_metadata[,is_factor] <- lapply(all_metadata[,is_factor], function(x) as.factor(x))
+all_metadata[,not_factor] <- lapply(all_metadata[,not_factor], function(x) as.numeric(as.character(x)))
+
 
 save(all_metadata, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metadata.rds")
 
