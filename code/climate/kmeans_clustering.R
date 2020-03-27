@@ -2,6 +2,18 @@
 library(fpc)
 library(dplyr)
 library(sf)
+library(cluster)
+library(vegan)
+library(pvclust)
+library(rgdal)
+library(raster)
+library(spData)
+library(spDataLarge)
+library(automap)
+library(wesanderson)
+library(cowplot)
+library(NbClust)
+
 #The goal of this script is to identify clusters in A. thaliana data. With this script we identified two major OTU clusters via kmeans clustering
 
 
@@ -26,7 +38,10 @@ plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,],
 ######################
 set.seed(16)
 
-otu_scale <- ((sqrt(plant_clim$otu_table)))
+otu_scale <- plant_clim$otu_table
+#otu_scale <- ((apply(otu_scale, 1, function(i) i/sum(i))))
+#otu_scale <- scale(t(otu_scale)) DON'T SCALE!! These data are already subsampled 1000 reads
+otu_scale <- sqrt(otu_scale/1000)
 
 ######################
 # Elbow plot (does not coverge)
@@ -39,49 +54,72 @@ plot(1:50, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares")
 
 ######################
-# Silhouette says two clusters
+# Silhouette says three clusters
 ######################
 
-#Silouette: 2 clusters
+#Silouette: 3 clusters
 pamk.best <- pamk(otu_scale)
-#plot(pam(otu_scale, pamk.best$nc))
+my.pam <- pam(data.frame((otu_scale)), pamk.best$nc)
+#For some reason the following throws an error
+#plot(pam(data.frame((otu_scale)), pamk.best$nc))
 asw <- numeric(20)
 
 for (k in 2:20)
   asw[[k]] <- pam(otu_scale, k) $ silinfo $ avg.width
 
-k.best <- which.max(asw)
-cat("silhouette-optimal number of clusters:", k.best, "\n")
+pamkzk.best <- which.max(asw)
+cat("silhouette-optimal number of clusters:", pamkzk.best, "\n")
+
+# ######################
+# # Calinsky says 2 
+# ######################
+# fit <- cascadeKM(scale(otu_scale, center = TRUE,  scale = TRUE), 1, 10, iter = 1000)
+# plot(fit, sortg = TRUE, grpmts.plot = TRUE)
+# calinski.best <- as.numeric(which.max(fit$results[2,]))
+# cat("Calinski criterion optimal number of clusters:", calinski.best, "\n")
+
 
 ######################
-# Calinsky also says 2 
+# So let's do k-means clustering with three clsuters
 ######################
-fit <- cascadeKM(scale(otu_scale, center = TRUE,  scale = TRUE), 1, 10, iter = 1000)
-plot(fit, sortg = TRUE, grpmts.plot = TRUE)
-calinski.best <- as.numeric(which.max(fit$results[2,]))
-cat("Calinski criterion optimal number of clusters:", calinski.best, "\n")
+nc <- NbClust(otu_scale,diss=NULL, distance = "euclidean", min.nc=2, max.nc=6, 
+         method = "kmeans", index = "silhouette")
+fviz_nbclust(otu_scale, kmeans, method = c("silhouette", "wss",
+                                           "gap_stat"))
+clusters <- kmeans(otu_scale, 3)
+
+plant_clim$clim_data$cluster = nc$Best.partition #clusters$kmeans.cluster
 
 
-######################
-# So let's do k-means clustering with two clsuters
-######################
-
-clusters <- kmeans(otu_scale, 2)
-plant_clim$clim_data$cluster = clusters$cluster
-
-save(plant_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
 
 ######################
 # How about hierarchical clustering
 ######################
-d <- otu_scale %>% dist()
+d <- sqrt(otu_scale) %>% dist()
 hc <- hclust(d)
-cl_members <- cutree(tree = hc, k = 2)
+cl_members <- cutree(tree = hc, k = 3)
 #plot(hc, hang = -1, cex = 0.6,  leaflab = "none")
 plot(x = hc, labels =  row.names(hc), cex = 0.5)
 rect.hclust(tree = hc, k = 2, which = 1:2, border = 1:2, cluster = cl_members)
 plant_clim$clim_data$hc_cuttree2 = cl_members
+
+#choosing optimal clusters supported by data
+#https://www.datanovia.com/en/lessons/computing-p-value-for-hierarchical-clustering/
+# pv <- parPvclust(cl=NULL, t(otu_scale), method.hclust = "average",
+#              method.dist = "correlation", nboot = 100, 
+#              iseed = NULL)
+
+# Default plot
+plot(pv, hang = -1, cex = 0.5)
+pvrect(pv)
+clusters <- pvpick(pv)
+
+# average silhouette score for hclust
+h.cut <- hcut((otu_scale), k = 2, hc_method = "complete")
+fviz_silhouette(h.cut)
+fviz_cluster(h.cut)
+save(plant_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
 ######################
 # And Let's plot the MDS with the clusters
@@ -256,13 +294,13 @@ myvar_point_hclust <-base_europe_df +
   xlab(label = NULL) +
   ylab(label = NULL)
 
-kmeans <- plot_grid(MDS_plot_kmeans + theme(legend.position = "none"), 
+kmeans.p <- plot_grid(MDS_plot_kmeans + theme(legend.position = "none"), 
                     myvar_point_kmeans + theme(legend.position = "none"))
 
-hclust <- plot_grid(MDS_plot_hclust + theme(legend.position = "none"), 
+hclust.p <- plot_grid(MDS_plot_hclust + theme(legend.position = "none"), 
                     myvar_point_hclust + theme(legend.position = "none"))
 
-cluster_plot <- plot_grid(kmeans, hclust, labels = c("k-means", "hclust")
+cluster_plot <- plot_grid(kmeans.p, hclust.p, labels = c("k-means", "hclust")
 , nrow = 2)
                           
 

@@ -110,12 +110,13 @@ my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% select 
 #my.total.matrix$Lat = as.numeric(as.character(my.total.matrix$Lat))
 #my.total.matrix$Long = as.numeric(as.character(my.total.matrix$Long))
 my.total.matrix[which(is.na(my.total.matrix$Land_cov)),]$Land_cov = "5000"
-list_facs <- c("Lat", "Long", "Soil_temp", "Soil_hum", "Humidity_ground.1", "Air_temp", "Air_hum")
+my.total.matrix[my.total.matrix=="n/a"]<-NA
+list_facs <- c("Lat", "Long", "Soil_temp", "Soil_hum", "Humidity_ground.1", "Air_temp", "Air_hum", "R_diameter")
 my.total.matrix[,list_facs] <- lapply(my.total.matrix[, list_facs], function(x) as.numeric(as.character(x))) 
 
 #normalize the predictors and impute missing values. preProcess won't work with factors. 
 my.total.matrix.num <- my.total.matrix %>% 
-  select(-c(Albugo, Necrosis, Strata_trees, Strata_shrubs, Strata_road, Strata_wall_tree, Strata_water, Strata_wall_shrub, Site_Name, Site_name, Growing_on, Rosette_color, Ground_type, Heterogeneity))
+  select(-c(Albugo, Tour_ID, Necrosis, Strata_trees, Strata_shrubs, Strata_road, Strata_wall_tree, Strata_water, Lat, Long, Date, Strata_wall_shrub, Site_Name, Site_name, Growing_on, Rosette_color, Ground_type, Heterogeneity))
 
 # calculate correlation matrix. Only possible with numeric predictors
 nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
@@ -144,7 +145,7 @@ y <- my.total.matrix.num$response
 #rm NA predictors
 x <- x[,colSums(is.na(x))==0,]   #%>% select(-c(Site_ID))
 
-x[x=="n/a"]<-NA
+
 #################################
 # Step 3: Choose features via recursive feature elimination
 #################################
@@ -154,7 +155,7 @@ set.seed(16)
 # Create a control object to set the details of feature selection that will occur next
 ctrl <- rfeControl(functions = rfFuncs,
                    method = "repeatedcv",
-                   repeats = 5,
+                   repeats = 1,
                    saveDetails = TRUE,
                    verbose = TRUE)
 #I was getting a weird error with lmfuncs. Not clear if the problem was me or a bug. The following error was also found in this blog:https://community.rstudio.com/t/rfe-error-logistic-classification-undefined-columns-selected-and-match-requires-vector-arguments/23988
@@ -164,7 +165,7 @@ rfProfile <- rfe(x = x, y = y,
                  rfeControl = ctrl, #rfeControl(functions = caretFuncs))
                  na.action = na.omit)
 
- my.predictors = predictors(rfProfile)[1:10]
+ my.predictors = predictors(rfProfile)
 
 trellis.par.set(caretTheme())
 plot(rfProfile, type = c("g", "o"))
@@ -193,7 +194,7 @@ rf.output <- caret::train(response~.,
                    verbose = TRUE)
                    
 
-importance <- varImp(rf.output, scale=FALSE)
+importance <- varImp(rf.output, scale=TRUE)
 import_MDS1 <- plot(importance)
 
 # combine all data sets
