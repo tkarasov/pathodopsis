@@ -45,6 +45,6 @@ do
     #then
     #    break
     #fi
-    cp $demult_file_R1 $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R1.fastq
-    cp $demult_file_R2  $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_16S_R2.fastq
+    cp $demult_file_R1 $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_ITS_R1.fastq
+    cp $demult_file_R2  $output_direc/demult_python/${f1}_${f2}_${f3}_${f5}_ITS_R2.fastq
 done< $info
