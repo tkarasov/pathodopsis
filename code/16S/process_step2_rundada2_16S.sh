@@ -31,6 +31,7 @@ silva=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database
 
 #mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
+#THe following speps which are commented out were run exactly once to merge the soil and other 16S files
 #cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
 #cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/soil_16S_ITS/run174_16S_9_2019_soil_16S/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
@@ -47,7 +48,7 @@ $amp_general/dada2_filter_tlk.R \
 $amp_general/dada2_inference_tlk.R \
        -f $output_direc/filtered_fastqs --seed 1659 -t 9 --verbose --plot_errors
 
-# Remove chimeric variants and assign taxonomy
+# Remove chimeric variants and assign taxonomy. Species assignment can be done within a script
 $amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
  -r $silva/silva_nr_v132_train_set.fa.gz \
  -t 9 --skip_species --verbose TRUE \

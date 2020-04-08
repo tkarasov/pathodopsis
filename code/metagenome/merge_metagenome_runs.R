@@ -1,9 +1,10 @@
 #!/usr/bin/env Rscript
-#the only purpose of this script is to take the output from the centrifuge runs on different datasets and merge them
+#the only purpose of this script is to take the different metagenome runs and merge the data. I had some issues with the capsella merging and one of the controls merging so have excluded them here in 4/2020
 
 library(dplyr)
 library(tibble)
 
+setwd("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs")
 combine_tables <- function(df1, df2){
   #combine coverage per genome together
   bind_rows(df1 %>% tibble::rownames_to_column(), 
@@ -29,6 +30,122 @@ merge_by_name <- function(name){
 }
 
 
+merge_microbe_reads_by_name <- function(){
+  #list all samples across all folders. Names should end in R1R2.fq.gz
+  read_list = c()
+  for(fold in folders){
+    my_files = list.files(path = fold, pattern = "R1.fq")
+    my_files = sapply(strsplit(my_files, "_"), "[", 1)
+    my_files = sapply(strsplit(my_files, "Metagenomic"), "[", 1)
+    my_files2 = gsub("R1", "R2", my_files)
+    my_files = gsub(".R1", "*.R1",my_files)
+    my_files2 = gsub(".R2", "*.R2", my_files2)
+    print(my_files[1])
+    read_list = append(read_list, my_files)
+    read_list = append(read_list, my_files2)
+  }
+  for(read in unique(read_list)){
+    for(fold in folders){
+      samp=paste(fold, read, sep="")
+      samp_name=gsub("\\*", "", read)
+      dest = paste(paste("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/", samp_name, sep=""), "", sep="")
+      cmd = paste(paste(paste("cat", samp, sep= " "), ">>", sep=""),dest, sep="")
+      com = system(cmd)
+    }
+  }
+  
+}
+
+merge_plant_reads_by_name <- function(){
+  #list all samples across all folders. Names should end in R1R2.fq.gz
+  read_list = c()
+  for(fold in folders){
+    my_files = list.files(path = fold, pattern = ".bam")
+    my_files2 = grep(my_files, pattern = "unmapped", inv = T, value = T)
+    my_files = sapply(strsplit(my_files2, "_"), "[", 1)
+    my_files = gsub(".bam", "", my_files)
+    #my_files = sapply(strsplit(my_files, "Metagenomic"), "[", 1)
+    #my_files = sapply(strsplit(my_files, ".fq.gz"), "[",1)
+    print(my_files[1])
+    read_list = append(read_list, my_files)
+  }
+  read_list = unique(read_list)
+  for(read in read_list){
+    cmd = paste("touch",
+              paste(
+                paste("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/", read, sep=""), 
+                ".bam", sep = ""), sep = " ")
+    com = system(cmd)
+      }
+
+  
+  for(read in read_list[2:length(read_list)]){
+    tot_files = c()
+    dest =paste(paste("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/", 
+                      read, sep=""), ".bam", sep = "")
+    for(fold in folders){
+      samp = list.files(path=fold, pattern = read )
+      samp = grep(samp, pattern = ".bam", value = T)
+      samp = grep(samp, pattern = "unmapped", inv = T, value = T)
+      my_files2 = grep(my_files, pattern = "unmapped", inv = T, value = T)
+      #print(my_files2)
+      if(length(samp)==0)
+        print("NA")
+      else{
+        samp_name=paste(fold, samp, sep="")
+        #samp_name=gsub("\\*", "", read)
+        #dest = paste(paste("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/", samp_name, sep=""), "", sep="")
+        tot_files = append(tot_files, samp_name)
+      }
+        print(tot_files)
+        tot_char = stri_paste(tot_files, collapse=' ')
+        cmd = paste(paste("samtools merge ", dest, sep = " " ), tot_char, sep = " ")
+        print(cmd)
+        com = system(cmd)
+        #cmd2 = paste("mv temp ", dest, sep = " ")
+        #com2 = system(cmd2)
+      }
+    }
+  }
+  
+
+
+
+merge_original_reads <- function(){
+  dir="/ebio/abt6_projects9/pathodopsis_microbiomes/data/raw_reads/metagenome"
+  file_list <-  list.dirs(dir)
+  samp <- sapply(strsplit(sapply(strsplit(file_list, "SampleId"), "[",2), "_"), "[",1)
+  samp <- unique(samp)
+  
+  #Exclude the capsella samples and the control sample that has size problems
+  samp <- grep("PC", samp, inv = TRUE, value = TRUE)
+  samp <- grep("control.", samp, inv = TRUE, value =TRUE)
+  
+  for(sample in samp){
+    mv_file_list <-  grep(sample, file_list, value = TRUE)
+    mv_file_list1 <- paste(mv_file_list, "/*R1*", sep="")
+    mv_file_list2 <- paste(mv_file_list, "/*R2*", sep="")
+    #mv_file_list2 <- grep("R2", grep(sample, file_list, value = TRUE))
+    mv_file_list1 <- stri_paste(mv_file_list1, collapse = " ")
+    mv_file_list2 <- stri_paste(mv_file_list2, collapse = " ")
+    new_name1 <- paste("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/raw_concat/", 
+                       paste(sample, ".R1.fq.gz", sep = ""), sep = "")
+    new_name2 <- paste("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/raw_concat/", 
+                       paste(sample, ".R2.fq.gz", sep = ""), sep = "")
+    cmd1 = paste(paste(paste("zcat ", mv_file_list1, sep = " "), ">>", sep = ""), new_name1, sep = "")
+    cmd2 = paste(paste(paste("zcat ", mv_file_list2, sep = " "), ">>", sep = ""), new_name2, sep = "")
+    print(cmd1)
+    com1 <- system(cmd1)
+    com2 <- system(cmd2)
+  }
+  
+  
+
+  }
+
+
+
+
 
 folders = c("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/",
             "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run104_2018_7_metagenome_reads/",
@@ -36,50 +153,13 @@ folders = c("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/m
             "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run144_2019_5_metagenome_reads/"
             )
 
-fungi = "meta_family_corrected_per_plant_v2_fungi.csv"
-bac = "meta_family_corrected_per_plant_v2_fungi.csv"
-oom = "meta_family_corrected_per_plant_v2_fungi.csv"
-
-# Merge the tables
-fung_all = merge_by_name(fungi)
-bac_all = merge_by_name(bac)
-oom_all = merge_by_name(oom)
-
-write.table(fung_all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/fungi_all_runs_meta_family_corrected_per_plant_v2.csv", sep = ",", header = T, quote = F)
-
-write.table(bac_all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/bac_all_runs_meta_family_corrected_per_plant_v2.csv", sep = ",", header = T, quote = F)
-
-write.table(oom_all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/oom_all_runs_meta_family_corrected_per_plant_v2.csv", sep = ",", header = T, quote = F)
-
-#write out summed load file
-
-fung_sum = colSums(fung_all)
-bac_sum = colSums(bac_all)
-oom_sum = colSums(oom_all)
-
-all_load = data.frame(fung_load = colSums(fung_all))
-all_load$bac_load = bac_sum[rownames(all_load)]
-all_load$oom_load = oom_sum[rownames(all_load)]
-all_load$Total_load = rowSums(all_load)
-
-write.table(fung_all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/Total_load_v2.csv", sep = ",", header = T, quote = F)
 
 
+# This command writes concatenated text to the combined_runs file
+#merge_reads_by_name()
+#merge_plant_reads_by_name()
 
-
-
-
-# folder = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/run116_2018_9_metagenome_reads/"
-# fung = read.csv(paste(folder, fungi, sep = ""), header = T, row.names = 1)
-# 
-# fung_main = data.frame()
-# for(folder in folders){
-#   fung_temp = read.csv(paste(folder, fungi, sep = ""), header = T, row.names = 1)
-#   fung_join = join(fung_main, fung_temp)
-#   fung_main = fung_join
-#   
-# }
-
+merge_original_reads()
 
 
 

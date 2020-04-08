@@ -143,12 +143,13 @@ GP_fam=tax_glom(GP50, "Family")
 
 set.seed(4)
 GP1000 = rarefy_even_depth(GP50, sample.size = 1000)
+
 #qGPr  = transform_sample_counts(GP, function(otu) otu/sum(otu))
 
 
-save(GP1000, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000.rds")
-save(GP50, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
-save(GP, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP.rds")
+save(GP1000, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/ITS_OTUtab_GP1000.rds")
+save(GP50, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/ITS_OTUtab_GP50.rds")
+save(GP, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/ITS_OTUtab_GP.rds")
 rm(GP)
 #######################################################################
 # Write ASVs to file and OTU table
@@ -189,11 +190,11 @@ write.table(extracted_GP50_family, paste(output_direc, "/sixteenS_family5.csv", 
 # # Basic plot of abundance
 # #######################################################################
 # #basic plot
-# top20 <- names(sort(taxa_sums(GP50), decreasing=TRUE))[1:20]
-# ps.top20 <- transform_sample_counts(GP50, function(OTU) OTU/sum(OTU))
-# ps.top20 <- prune_taxa(top20, ps.top20)
+ top20 <- names(sort(taxa_sums(GP50), decreasing=TRUE))[1:20]
+ ps.top20 <- transform_sample_counts(GP50, function(OTU) OTU/sum(OTU))
+ ps.top20 <- prune_taxa(top20, ps.top20)
 # 
-# plot_bar(ps.top20, x="Subject", fill="Family") + facet_wrap(~Clim, scales="free_x") + theme(axis.line.x = element_blank())
+ plot_bar(ps.top20, x="Subject", fill="Family") + facet_wrap(~Clim, scales="free_x") + theme(axis.line.x = element_blank())
 # 
 # GP50.prop <- transform_sample_counts(GP50, function(otu) otu/sum(otu))
 # ord.nmds.bray <- ordinate(GP50.prop, method="NMDS", distance="bray")
