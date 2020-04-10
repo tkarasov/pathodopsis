@@ -29,7 +29,7 @@ def get_desired_ranks(taxid, desired_ranks):
 
 
 ##################################################################
-# Now we pull all sequences from ncbi that are Oomycete and have description with ITS1
+# First pull all sequences from ncbi that are Oomycete and have description with ITS1
 ##################################################################
 
 
@@ -44,11 +44,6 @@ handle = Entrez.esearch(db="nucleotide", term=search_term, idtype="acc",
 
 # handle = Entrez.efetch(db="Taxonomy", id="4672", retmode="xml")
 records = Entrez.read(handle)
-
-
-# create elink:
-
-
 gi_list = records["IdList"]
 gi_str = ",".join(gi_list)
 record = Entrez.read(Entrez.elink(id=gi_list, dbfrom="nuccore", db="nuccore"))
@@ -56,7 +51,7 @@ record = Entrez.read(Entrez.elink(id=gi_list, dbfrom="nuccore", db="nuccore"))
 # gi_conv = ','.join([link["LinkSetDb"][0]["Link"][0]["Id"] for link in record])
 
 
-# The efeth algorithm needs a concatenated string
+# The efetch algorithm needs a concatenated string
 gi_conv = gi_str
 
 # handle2 = Entrez.efetch(db="nuccore", id=gi_conv, rettype="gb",
@@ -67,12 +62,11 @@ gi_conv = gi_str
 handle3 = Entrez.efetch(db="nuccore", id=gi_conv, rettype="gb",
                         retmode="xml",
                         usehistory="y")
-
-
 records3 = Entrez.read(handle3)
 
-
+##################################################################
 # Now rename records with taxonomical information
+##################################################################
 # converted = Entrez.read(Entrez.elink(id=gi_conv, dbfrom="nuccore", db="nuccore"))
 # converted2 = Entrez.read(Entrez.elink(id=gi_str, dbfrom="nucleotide", db="taxonomy"))
 # fin_handle = open("/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/oomycete_ITS1.fasta", "wb")
@@ -139,6 +133,43 @@ os.system("/ebio/abt6_projects9/pathodopsis_microbiomes/Programs/ITSx_1.1.2/ITSx
 # The output from ITSx isn't yet compatible. Rename with the seqs_dict
 ##################################################################
 
+ITS = list(SeqIO.parse(
+    open("/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/oomycete_real_ITS1.fasta.ITS1.fasta", 'r'), "fasta"))
+
+for rec in ITS:
+    temp = seqs_dict[rec.id.split("|")[0]].replace(" ", "_")
+    rec.id = temp
+    rec.description = ''
+    rec.name = ''
+
+real_handle = open("/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/fin_oomycete_ITS.fasta", "wb")
+SeqIO.write(ITS, real_handle, "fasta")
+real_handle.close()
+
+
+os.system("cat /ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/sh_general_release_04.02.2020/sh_general_release_dynamic_04.02.2020.fasta \
+	/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/fin_oomycete_ITS.fasta > /ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/fungi_oomycete_ITS.fasta ")
+
+fixing = list(SeqIO.parse(open("/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/fungi_oomycete_ITS.fasta"), "fasta"))
+fixed = []
+for rec in fixing:
+    new_id = rec.id.split("|")[-1]
+    #new_id = rec.id
+    temp = new_id.replace("__NA", "__unidentified")
+    new_id = temp
+    rec.id = new_id
+    rec.description = ""
+    rec.name = ""
+    if len(rec.seq) > 100:
+        fixed.append(rec)
+
+real_handle = open("/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/fin_oomycete_ITS.fasta", "wb")
+SeqIO.write(fixed, real_handle, "fasta")
+real_handle.close()
+
+
+os.system("rm /ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/oomycete_real*")
+os.system('rm /ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/oomycete_all_S.fasta')
 
 
 # for linksetdb in record[0]["LinkSetDb"]:

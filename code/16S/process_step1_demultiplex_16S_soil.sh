@@ -1,1 +1,0 @@
-/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/process_step1_demultiplex_16S.sh

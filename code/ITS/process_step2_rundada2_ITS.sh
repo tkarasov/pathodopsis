@@ -26,7 +26,8 @@ amp_general="/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/a
 output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/all_runs/demult_python
 #/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/ITS/
 
-tax_ref=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/sh_general_release_04.02.2020
+#tax_ref=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/sh_general_release_04.02.2020
+tax_ref=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database
 
 #mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
@@ -48,7 +49,7 @@ cd $output_direc
 
 # Remove chimeric variants and assign taxonomy
 $amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
- -r $tax_ref/sh_general_release_dynamic_04.02.2020.fasta \
+ -r $tax_ref/fin_oomycete_ITS.fasta  \
  -t 9 --skip_species --verbose TRUE \
  --tax_out $output_direc/tax_final.rds
 
@@ -61,7 +62,7 @@ echo "Done with taxonomy assignments, moving onto converting dada table"
 echo "Done with converting dada2 moving on to biom conversion"
 
 # Create phylogeny from table. This function takes a lot of memory also
-$amp_general/after_dada2_make_tree_ITS.R
+# $amp_general/after_dada2_make_tree_ITS.R
 
 
 # convert table to biom
