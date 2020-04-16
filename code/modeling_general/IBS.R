@@ -1,0 +1,242 @@
+library(vegan)
+library(SNPRelate)
+library(gdsfmt)
+library(microbiome)
+library(phyloseq)
+library(ade4)
+devtools::install_git(url = 'https://github.com/tkarasov/taliaRgeneral.git')
+library(taliaRgeneral)
+#library(genefilter)
+library(limma)
+library(edgeR)
+library(sp)
+library(dplyr)
+library(gstat)
+
+# The goal of this script is to associate microbial similarity with distance with genetic similarity
+# basic info on handling vcf file and calculating ibs https://bioconductor.statistik.tu-dortmund.de/packages/3.2/bioc/vignettes/SNPRelate/inst/doc/SNPRelateTutorial.html
+
+setwd("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/")
+hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744")
+vcf = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolsGVCF.filtered_snps_final.PASS.bi.vcf"
+genot_dir = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/"
+output_direc = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
+
+
+
+#######################################################################
+# Calculate kinship
+#######################################################################
+ibs = make_kinship(vcf = vcf)
+kinship = ibs$ibs
+
+
+
+
+
+
+
+#######################################################################
+# Look at Variogram
+#######################################################################
+
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
+
+plant_val = which(OTU_clim$clim_data$Host_Species=="Ath")
+
+plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,], 
+                   clim_data = OTU_clim$clim_data[plant_val,], 
+                   tax_table = OTU_clim$tax_table, 
+                   phy_tree = OTU_clim$phy_tree, 
+                   refseq = OTU_clim$refseq)
+
+plant_otu = data.frame(plant_clim$otu_table)
+plant_otu$Latitude = as.numeric(as.character(plant_clim$clim_data$Lat))
+plant_otu$Longitude = as.numeric(as.character(plant_clim$clim_data$Long))
+plant_otu <- plant_otu %>% filter(is.na(Latitude)==FALSE)
+
+set.seed(4)
+plant_otu$Longitude = plant_otu$Latitude + runif(length(plant_otu$Latitude), 0, 0.0001)
+
+# no trend:
+my.transform <- "+proj=longlat +datum=WGS84 +no_defs"
+sp::coordinates(plant_otu) = ~Longitude+Latitude
+proj4string(plant_otu) = CRS(my.transform)
+#proj4string(plant_otu) = CRS("+init=epsg:28992")
+
+opti_var <- names(plant_otu)
+
+# ################
+# # LONG distance
+# ################
+# for(i in 1:20){
+#   eq <- as.formula(paste(paste("log10(",opti_var[i],sep=""), "+0.01)~1", sep=""))
+#   v = variogram(eq, plant_otu, cutoff = 1000, width = 20)
+#   v.plot = ggplot(v, aes(x = dist, y = gamma)) + 
+#     geom_point(alpha = 0.3, cex = 2) +
+#     xlab("Distance (km)") +
+#     ylab("Semivariance") +
+#     annotate("Text", y= max(v$gamma), x =max(v$dist),label=opti_var[i],hjust=1) +
+#     theme_bw()
+#   assign(paste("plot", i, sep=""), v.plot)
+#   myplots[[i]] = v.plot
+# 
+# }
+# 
+# 
+# long <- plot_grid(plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10, plot11, plot12, plot13, plot14, plot15, plot16, plot17, plot18, plot19, plot20)
+
+my.sph<- vector('list', length(opti_var))
+my.lin<- vector('list', length(opti_var))
+################
+# Look at variograms over 1000km
+################
+for(i in 1:dim(plant_clim$otu_table)[2]){
+  my.label <- paste(plant_clim$tax_table[i], opti_var[i], sep = ",")[6]
+  eq <- as.formula(paste(paste("log10(",opti_var[i],sep=""), "+0.01)~1", sep=""))
+  v = variogram(eq, plant_otu, cutoff = 1000, width = 8)
+  v.fit.lin = fit.variogram(v, vgm("Lin"))
+  vgl = variogramLine(v.fit.lin, maxdist = 1000)
+  v.plot = ggplot(v, aes(x = dist, y = gamma)) + 
+    geom_point(alpha = 0.3, cex = 2) +
+    geom_line(data = vgl, col = "RED") + 
+    xlab("") +
+    ylab("") +
+    #ylim(c(0,3)) +
+    labs(title = my.label, size = 4) +
+    #annotate("Text", y = max(v$gamma), x =max(v$dist), label = my.label, hjust=1, size = 6 ) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+    assign(paste("plot", i, sep=""), v.plot)
+  
+
+ # v.fit.exp = fit.variogram(v, vgm(1, "exp"))
+#  my.sph[[i]] = v.fit.sph
+  my.lin[[i]] = v.fit.lin
+ # my.exp[[i]] = v.fit.exp
+  
+}
+names(my.lin) = opti_var
+
+short <- plot_grid(plot1, plot2, plot3, plot4, plot5, plot6, plot7, plot8, plot9, plot10, plot11, plot12, nrow = 4, label_x ="Distance (km)", label_y = "Semivariance")
+#, plot11, plot12, plot13, plot14, plot15, plot16, plot17, plot18, plot19, plot20)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/variogram_100km.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
+short
+dev.off()
+
+###################################################
+# Calculate Decay rate
+###################################################
+my.nugget <- lapply(my.lin, `[[`, 2)
+my.range <- lapply(lapply(my.lin, `[[`, 3), '[[', 2)
+my.slope <- as.numeric(lapply(lapply(my.lin, `[[`, 2), '[[', 2))
+names(my.slope) <- names(my.range)
+
+my.range.1 <- as.numeric(as.character(my.range))
+info_range_orig <- data.frame(range = my.range.1, genus = plant_clim$tax_table, slope = my.slope)
+info_range_orig$max_abund <- apply(plant_clim$otu_table, 2, max, na.rm = TRUE)/1000
+info_range <- info_range_orig %>% filter(slope!=0)
+info_range_orig$max_abund <- apply(plant_clim$otu_table, 2, max, na.rm = TRUE)/1000
+info_range_orig$mean_abund <- apply(plant_clim$otu_table, 2, mean, na.rm = TRUE)/1000
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/variogram_across_families.pdf", useDingbats = FALSE, font = "ArialMT", width  = 10, height = 4)
+ggplot(info_range, aes(x = fct_reorder(genus.Family, range, .fun = median, .desc =TRUE), y = range)) +
+  geom_boxplot() +
+  scale_y_continuous(trans='log10') +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  geom_point(alpha = 0.2) +
+  ylab("Distance (km)") +
+  xlab("")
+#  facet_wrap(~genus.Family)
+dev.off()
+
+mean(info_range$range)
+median(info_range$range)
+sd(info_range$range)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/hist_autocorrelated_range.pdf", useDingbats = FALSE, font = "ArialMT", width  = 3.5, height = 3.5)
+ggplot(info_range, aes(x = range)) + 
+  geom_histogram(alpha = 0.3, color = "Grey20") +
+  scale_x_continuous(trans = 'log10', breaks = c(1,10,100, 1000,4000)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  xlab("Distance (km)") +
+  ylab("Number of Phylotypes")
+
+#  xlim(c(0, max(info_range$range)))
+dev.off()
+
+
+###################################################
+# Relationship between OTUS and Latitude and Longitude
+###################################################
+#correlate every OTU with Latitude
+y = data.frame(plant_clim$otu_table)
+plant_clim$clim_data$Lat <- as.numeric(as.character(plant_clim$clim_data$Lat))
+plant_clim$clim_data$Long <- as.numeric(as.character(plant_clim$clim_data$Long))
+hm = apply(y, 2, function(col1) cor.test(col1, plant_clim$clim_data$Lat, na.rm =TRUE)[c("p.value", "estimate")])
+hm.long = apply(y, 2, function(col1) cor.test(col1, plant_clim$clim_data$Long, na.rm =TRUE)[c("p.value", "estimate")])
+cor.hm <- matrix(unlist(hm), ncol = 2, byrow = TRUE)
+cor.hm.long <- matrix(unlist(hm.long), ncol = 2, byrow = TRUE)
+colnames(cor.hm) <- c("pval.lat", "cor.lat")
+colnames(cor.hm.long) <- c("pval.long", "cor.long")
+info_range_orig<- cbind(info_range_orig, cor.hm)
+info_range_orig<- cbind(info_range_orig, cor.hm.long)
+info_range_orig$pval.adj <- p.adjust(info_range_orig$pval.lat, method = "BH")
+info_range_orig$pval.adj.long <- p.adjust(info_range_orig$pval.long, method = "BH")
+
+#number correlated with Latitude
+length(which(info_range_orig$pval.adj<0.01))/length(info_range_orig$pval.adj)
+
+#number correlated with Longitude
+length(which(info_range_orig$pval.adj.long<0.01))/length(info_range_orig$pval.adj)
+
+###################################################
+# OTU5 picture
+###################################################
+hist(plant_clim$otu_table[,"seq_10"]/1000)
+
+otu5_hist <- ggplot(data.frame(plant_clim$otu_table), aes(x = (seq_10 + 1)/10)) + 
+  geom_histogram(alpha = 0.3, color = "Grey20") +
+  scale_x_continuous(trans = 'log10', breaks = c(0,0.1,1, 5,10,20,50,70)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  xlab("OTU5 pathogen RA (%)") +
+  ylab("Number of Plants")
+
+otu5_spatial <- plant_clim$clim_data$otu5 <- as.numeric(plant_clim$otu_table[,"seq_10"][,1])
+otu5_lat <- ggplot(data = plant_clim$clim_data, aes(x = Lat, y = otu5)) +
+  geom_point() +
+  theme_bw() + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+
+
+
+
+i = 7
+my.label <- paste(plant_clim$tax_table[i], opti_var[i], sep = ",")[6]
+eq <- as.formula(paste(paste("log10(",opti_var[i],sep=""), "+0.01)/10~1", sep=""))
+v = variogram(eq, plant_otu, cutoff = 1000, width = 8)
+v.fit.lin = fit.variogram(v, vgm("Sph"))
+vgl = variogramLine(v.fit.lin, maxdist = 1000)
+v.plot = ggplot(v, aes(x = dist, y = gamma)) + 
+  geom_point(alpha = 0.3, cex = 2) +
+  geom_line(data = vgl, col = "RED") + 
+  ylab(expression(paste("Semivariance (",paste(log[10], "(RA %))"), sep = ""))) +
+  xlab("Distance (km)") +
+  #ylim(c(0,3)) +
+  #labs(title = my.label, size = 4) +
+  #annotate("Text", y = max(v$gamma), x =max(v$dist), label = my.label, hjust=1, size = 6 ) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+
+v.plot
+
+
+
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.rds")
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU5_all_subfigures.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
+otu5_all <- grid.arrange(otu5_grid, plot_grid(otu5_hist, v.plot, ncol = 1, align = "hv"), ncol =2)
+dev.off()
