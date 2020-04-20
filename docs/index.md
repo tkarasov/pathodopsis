@@ -2,7 +2,6 @@
 #### Talia Karasov
 This repository contains scripts related to the pathodopsis microbiome study from 2018-2020.
 
-
 ### DEPENDENCIES
 #### Read Mapping of Plant and Metagenome
 * [python3](https://www.python.org/download/releases/3.0/)
@@ -11,7 +10,6 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 * [samtools (version 1.6-19-g1c03df6(using htslib 1.6-53-ge539b32)](http://www.htslib.org/)
 * [centrifuge (version 1.0.4)](https://ccb.jhu.edu/software/centrifuge/manual.shtml)
 * [dada2 (version 1.14)](https://benjjneb.github.io/dada2/)
-
 
 ### 16S/ITS Analysis
 #### Demultiplexing
@@ -38,3 +36,4 @@ This repository contains scripts related to the pathodopsis microbiome study fro
 * [OTU5 Kriging distribution](https://github.com/tkarasov/pathodopsis/blob/master/code/climate/kriging_OTU5_map.R)
 
 ### Metagenomics
+* [Script for running Centrifuge](https://github.com/tkarasov/metagenomics_pipeline/blob/master/centrifuge/centrifuge_db_split.sh)
