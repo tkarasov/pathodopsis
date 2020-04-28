@@ -155,6 +155,11 @@ save(GP, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/
 rm(GP)
 
 # #######################################################################
+# # Get dominant phylotypes
+# #######################################################################
+source("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/dominant_phylotypes.R")
+
+# #######################################################################
 # # Write ASVs to file and OTU table
 # #######################################################################
 # #write fasta file of taxa names

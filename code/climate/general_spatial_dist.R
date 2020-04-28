@@ -7,6 +7,9 @@ library(taliaRgeneral)
 library(parallel)
 library(dplyr)
 library(ggtree)
+library(ggplot2)
+library(ggnewscale)
+library(viridis)
 #githubURL <- 
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/color_pal.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rds")
@@ -21,23 +24,23 @@ per_site <- function(GP, seq, comp1="between", comp2="capsella", comp3="soil"){
   #Compiles data for comparisons between soil and species
   # seq must be a vector
   if(comp1 == "between"){
-    ath1 = subset_samples(GP, Species == "Ath")
+    ath1 = subset_samples(GP, Host_Species == "Ath")
     ath1 = prune_taxa(c(seq), ath1)
     ath1 = make_replicate(ath1)
     fin1 = cbind(sample_data(ath1), otu_table(ath1))
-    fin1 = reshape2::dcast(fin1, Latitude ~ rep, value.var = eval(seq))
+    fin1 = reshape2::dcast(fin1, Site_ID ~ rep, value.var = eval(seq))
   }
   if(comp2 == "capsella"){
-    ath2 = subset_samples(GP, Sample_type == "M")
+    ath2 = subset_samples(GP, Used_for == "M")
     ath2 = prune_taxa(c(seq), ath2)
     fin2 = cbind(sample_data(ath2), otu_table(ath2))
-    fin2 = reshape2::dcast(fin2, Latitude ~ Species, mean, value.value = eval(seq))
+    fin2 = reshape2::dcast(fin2, Site_ID ~ Host_Species, mean, value.value = eval(seq))
   }
   if(comp3 == "soil"){
-    ath3 = subset_samples(GP, Species != "Cap")
+    ath3 = subset_samples(GP, Host_Species != "Cap")
     ath3 = prune_taxa(c(seq), ath3)
     fin3 = cbind(sample_data(ath3), otu_table(ath3))
-    fin3 = reshape2::dcast(fin3, Latitude ~ Sample_type, mean, value.var = eval(seq))
+    fin3 = reshape2::dcast(fin3, Site_ID ~ Used_for, mean, value.var = eval(seq))
   }
   
   #merge all
@@ -50,10 +53,10 @@ per_site <- function(GP, seq, comp1="between", comp2="capsella", comp3="soil"){
 
 make_replicate <- function(GP){
   #adds sample data column
-  unique_loc = unique(sample_data(GP)$Latitude)
+  unique_loc = unique(sample_data(GP)$Site_ID)
   sample_data(GP)$rep = c(0)
   for(val in unique_loc){
-    chosen = which(sample_data(GP)$Latitude==val)
+    chosen = which(sample_data(GP)$Site_ID==val)
     sample_data(GP)$rep[chosen] = paste("rep", c(1:length(chosen)), sep="")
   }
   return(GP)

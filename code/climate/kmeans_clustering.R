@@ -1,4 +1,4 @@
-
+library(automap)
 library(fpc)
 library(dplyr)
 library(sf)
@@ -9,10 +9,10 @@ library(rgdal)
 library(raster)
 library(spData)
 library(spDataLarge)
-library(automap)
 library(wesanderson)
 library(cowplot)
 library(NbClust)
+
 
 #The goal of this script is to identify clusters in A. thaliana data. With this script we identified two major OTU clusters via kmeans clustering
 
@@ -84,8 +84,8 @@ cat("silhouette-optimal number of clusters:", pamkzk.best, "\n")
 ######################
 nc <- NbClust(otu_scale,diss=NULL, distance = "euclidean", min.nc=2, max.nc=6, 
          method = "kmeans", index = "silhouette")
-fviz_nbclust(otu_scale, kmeans, method = c("silhouette", "wss",
-                                           "gap_stat"))
+# fviz_nbclust(otu_scale, kmeans, method = c("silhouette", "wss",
+#                                           "gap_stat"))
 clusters <- kmeans(otu_scale, 3)
 
 plant_clim$clim_data$cluster = nc$Best.partition #clusters$kmeans.cluster
@@ -108,15 +108,15 @@ plant_clim$clim_data$hc_cuttree2 = cl_members
 #              method.dist = "correlation", nboot = 100, 
 #              iseed = NULL)
 
-# Default plot
-plot(pv, hang = -1, cex = 0.5)
-pvrect(pv)
-clusters <- pvpick(pv)
-
-# average silhouette score for hclust
-h.cut <- hcut((otu_scale), k = 2, hc_method = "complete")
-fviz_silhouette(h.cut)
-fviz_cluster(h.cut)
+# # Default plot
+# plot(pv, hang = -1, cex = 0.5)
+# pvrect(pv)
+# clusters <- pvpick(pv)
+# 
+# # average silhouette score for hclust
+# h.cut <- hcut((otu_scale), k = 2, hc_method = "complete")
+# fviz_silhouette(h.cut)
+# fviz_cluster(h.cut)
 save(plant_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
 ######################
@@ -309,33 +309,33 @@ cluster_plot
 dev.off()
 
 
-####################################################################################
-# nMDS
-####################################################################################
-example_NMDS <- metaMDS(otu_table(only_ath), k=8, trymax = 100)
-plot(example_NMDS)
-
-hm = data.frame(example_NMDS$points)
-
-hm$PDS1 = plant_clim$clim_data$PDSI
-
-hm$kmean = clusters$cluster
-
-ggplot(hm, aes(x = MDS1, y = MDS2, z = MDS3, col = PDS1)) + geom_point() +
-  theme_bw() +
-  axes_3D() + 
-  stat_3D() +
-  scale_color_viridis_c()
-
-
-#plot nMDS stress
-n = 10
-stress <- vector(length = n)
-for (i in 1:n) {
-  stress[i] <- metaMDS(otu_table(only_ath), distance = "bray", k = i)$stress
-}
-names(stress) <- paste0(1:n, " Dimension")
-# x11(width = 10/2.54, height = 7/2.54)
-par(mar = c(3.5,3.5,1,1), mgp = c(2, 0.6, 0), cex = 0.8, las = 2)
-barplot(stress, ylab = "Stress")
-
+# ####################################################################################
+# # nMDS
+# ####################################################################################
+# example_NMDS <- metaMDS(otu_table(only_ath), k=8, trymax = 100)
+# plot(example_NMDS)
+# 
+# hm = data.frame(example_NMDS$points)
+# 
+# hm$PDS1 = plant_clim$clim_data$PDSI
+# 
+# hm$kmean = clusters$cluster
+# 
+# ggplot(hm, aes(x = MDS1, y = MDS2, z = MDS3, col = PDS1)) + geom_point() +
+#   theme_bw() +
+#   axes_3D() + 
+#   stat_3D() +
+#   scale_color_viridis_c()
+# 
+# 
+# #plot nMDS stress
+# n = 10
+# stress <- vector(length = n)
+# for (i in 1:n) {
+#   stress[i] <- metaMDS(otu_table(only_ath), distance = "bray", k = i)$stress
+# }
+# names(stress) <- paste0(1:n, " Dimension")
+# # x11(width = 10/2.54, height = 7/2.54)
+# par(mar = c(3.5,3.5,1,1), mgp = c(2, 0.6, 0), cex = 0.8, las = 2)
+# barplot(stress, ylab = "Stress")
+# 
