@@ -12,30 +12,134 @@ library(edgeR)
 library(sp)
 library(dplyr)
 library(gstat)
+library(ggplot)
+library(viridis)
+library(Gviz)
+library(GenomicRanges)
+library(rtracklayer)
+library(pegas)
+#library(VariantAnnotation)
 
 # The goal of this script is to associate microbial similarity with distance with genetic similarity
 # basic info on handling vcf file and calculating ibs https://bioconductor.statistik.tu-dortmund.de/packages/3.2/bioc/vignettes/SNPRelate/inst/doc/SNPRelateTutorial.html
 
 setwd("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/")
 hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744")
-vcf = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolsGVCF.filtered_snps_final.PASS.bi.vcf"
+
+# Load in vcf and climate data
+vcf = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander.vcf"
+vcf_all = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolsGVCF.filtered_snps_final.PASS.bi.vcf"
 genot_dir = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/"
 output_direc = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
-
+# Load genome annotation information
+gff = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_GFF3_genes.gff"
+genemodels = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/ATH_GO_GOSLIM.txt"
 
 #######################################################################
-# Calculate kinship
+# Calculate kinship and pca
 #######################################################################
-ibs = make_kinship(vcf = vcf)
+#snpgdsVCF2GDS(vcf, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/pathodopsis.gds", method="biallelic.only")
+#snpgdsVCF2GDS(vcf_all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/pathodopsis_all.gds", method="biallelic.only")
+clim = plant_clim$clim_data[, c("Plant_ID", "cluster")]
+rownames(clim) = clim$Plant_ID
+genofile <- snpgdsOpen("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/pathodopsis.gds")
+genofile_all <- snpgdsOpen("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/pathodopsis_all.gds")
+samp.id <- read.gdsn(index.gdsn(genofile_all, "sample.id"))
+snp.id_all <- read.gdsn(index.gdsn(genofile_all, "snp.id"))
+snp.id <- read.gdsn(index.gdsn(genofile, "snp.id"))
+snp.chromosome <- read.gdsn(index.gdsn(genofile, "snp.chromosome"))
+snp.position <- read.gdsn(index.gdsn(genofile, "snp.position"))
+clim = clim[samp.id,]
+clim = clim[!is.na(clim[,1]),]
+
+
+pca <- snpgdsPCA(genofile, num.thread = 4, maf=0.05)#, snp.id=snpset.id, num.thread=2)
+fst <- snpgdsFst(genofile, sample.id = clim$Plant_ID, 
+                 with.id = TRUE,
+                 snp.id = snp.id, population = as.factor(clim$cluster), maf = 0.10)
+fst_all <- snpgdsFst(genofile_all, sample.id = clim$Plant_ID, 
+                 with.id = TRUE,
+                 snp.id = snp.id, population = as.factor(clim$cluster), maf = 0.10)
+ibs = snpgdsIBS(genofile, num.thread = 4)
 kinship = ibs$ibs
+snpgdsClose(genofile)
+snpgdsClose(genofile_all)
+
+#######################################################################
+# Plot Fst along genome
+#######################################################################
+fst_mat = data.frame(chr = snp.chromosome[fst$snp.id], position = snp.position[fst$snp.id], fst = fst$FstSNP)
+fst_quantile = quantile(fst_all$FstSNP, c(0,.999,1), na.rm =T)
+fst99 <- as.numeric(fst_quantile[2])
+fst_mat$new_pos <- c(1:dim(fst_mat)[1])
+acd6 = fst_mat[which(fst_mat$fst==max(fst_mat$fst, na.rm=TRUE)),]$new_pos[1]
+
+tsv = read.table("./acd6.tsv", sep="\t")
+hm=tsv[,c(28,1:20)]
+mine=fst_mat[which(fst_mat$fst == max(fst_mat$fst, na.rm=T)),]
+
+
+#This graph shows the elevated Fst at ACD6
+Fst_plot <- ggplot(fst_mat, aes(x=new_pos, y=fst, col = chr)) + 
+  geom_point() + 
+  #facet_grid(rows = vars(chr), scales = "free_x", switch = "x") +
+  theme_bw() +
+  geom_hline(aes(yintercept = fst99), lty = "dashed") +
+  scale_color_viridis_d() +
+  xlab("Position") +
+  ylab("Fst") +
+  geom_vline(aes(xintercept = acd6 ),
+             alpha = 0.1) +
+  geom_text(aes(x=acd6, label="ACD6\n", y = 0.7), colour="blue", angle=90, text=element_text(size=11)) +
+  ylim(c(0,1)) 
+  #facet_grid(~chr, scales = 'free_x', space = 'free_x', switch = 'x')
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
+Fst_plot
+dev.off()
 
 
 
+#######################################################################
+# Annotate vcf
+#######################################################################
+TAIR10 <- "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_GFF3_genes.gff"
+TAIR10_gff <- import.gff(TAIR10) 
+myGranges<-as(TAIR10_gff, "GRanges") 
+TAIR10_genes <- myGranges[which(myGranges$type=="gene"),]
+anno_track <- AnnotationTrack(myGranges, start = 1, 
+                              end =1000, feature = "1",
+                              stacking = "squish")
+fst_df <- data.frame(chr=paste("Chr", fst_mat$chr, sep=""),
+                   start=fst_mat$position,
+                   end=fst_mat$position,
+                   fst=fst_mat$fst,
+                   #id=c('one', 'two', 'three'),
+                   strand=c('+'))
 
+fst_g <- with(fst_df, myGranges, IRanges(start, end), strand, id=id)
 
+fst_track <- DataTrack(data = fst_mat$fst, start = fst_mat$position,
+                    end = fst_mat$position,
+                    chromosome = paste("Chr",fst_mat$chr, sep=""),
+                    genome = genome(myGranges),
+                    strand = c("+"))
+  #fst_g, strand = c("+"))
 
+annot_trac <- GeneRegionTrack(ranges = TAIR10_genes,
+                             chromosome = "Chr1", start = 1000, end =1000000)
 
+variants <-read.vcf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.recode.vcf")
+variants2 <- VCFloci("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.recode.vcf")
+variants3<-read.vcf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/mapping/acd6.vcf")
+colnames(variants) <- variants2$POS
+mine <- variants[,which(colnames(variants)=="8295146")]
+samps = as.character(plant_clim$clim_data$Sequence_ID)
+plant_clim$clim_data$snp8295146 <- mine[samps,1]$`8295146`
 #######################################################################
 # Look at Variogram
 #######################################################################
