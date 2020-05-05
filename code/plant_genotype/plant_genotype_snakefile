@@ -1,0 +1,51 @@
+# our zipf analysis pipeline
+DATS = glob_wildcards('books/{book}.txt').book
+
+rule all:
+    input:
+        raw_reads="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/raw_concat"
+        reference="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_chr_all.fas"
+
+# Use bwa to map
+rule map:
+    shell:
+        qsub 
+        '''
+
+# merge all bam 
+rule merge_bam:
+    input:
+        wc='wordcount.py',
+        book='books/{file}.txt'
+    output: 'dats/{file}.dat'
+    threads: 4
+    shell:
+        '''
+        python {input.wc} {input.book} {output}
+        '''
+
+# create a plot for each book
+rule call_snps:
+    input:
+        plotcount='plotcount.py',
+        book='dats/{file}.dat'
+    output: 'plots/{file}.png'
+    resources: gpu=1
+    shell:  'python {input.plotcount} {input.book} {output}'
+
+# generate summary table
+rule make_phylogeny:
+    input:
+        zipf='zipf_test.py',
+        books=expand('dats/{book}.dat', book=DATS)
+    output: 'results.txt'
+    shell:  'python {input.zipf} {input.books} > {output}'
+
+# create an archive with all of our results
+rule make_archive:
+    input:
+        expand('plots/{book}.png', book=DATS),
+        expand('dats/{book}.dat', book=DATS),
+        'results.txt'
+    output: 'zipf_analysis.tar.gz'
+    shell: 'tar -czvf {output} {input}'

@@ -12,12 +12,15 @@ library(edgeR)
 library(sp)
 library(dplyr)
 library(gstat)
-library(ggplot)
+library(ggplot2)
 library(viridis)
 library(Gviz)
 library(GenomicRanges)
 library(rtracklayer)
 library(pegas)
+library(sf)
+library(rnaturalearth)
+
 #library(VariantAnnotation)
 
 # The goal of this script is to associate microbial similarity with distance with genetic similarity
@@ -37,6 +40,142 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 # Load genome annotation information
 gff = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_GFF3_genes.gff"
 genemodels = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/ATH_GO_GOSLIM.txt"
+
+
+#######################################################################
+# VCF Fst analysis
+#######################################################################
+fst_1_3 <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander_fst_1_3.weir.fst",
+                      header = T)
+fst_1_3$new_pos <- c(1:dim(fst_1_3)[1])
+
+acd6 <- fst_1_3[which(fst_1_3$WEIR_AND_COCKERHAM_FST==max(fst_1_3$WEIR_AND_COCKERHAM_FST, na.rm =TRUE)),]$new_pos[1]
+
+#This graph shows the elevated Fst at ACD6
+Fst_plot <- ggplot(fst_1_3, aes(x=new_pos, y=WEIR_AND_COCKERHAM_FST, col = CHROM)) + 
+  geom_point() + 
+  #facet_grid(rows = vars(chr), scales = "free_x", switch = "x") +
+  theme_bw() +
+  #geom_hline(aes(yintercept = fst99), lty = "dashed") +
+  scale_color_viridis_d() +
+  xlab("Position") +
+  ylab("Fst") +
+  geom_vline(aes(xintercept = acd6 ),
+             alpha = 0.1) +
+  geom_text(aes(x=acd6, label="ACD6\n", y = 0.7), colour="blue", angle=90, text=element_text(size=11)) +
+  ylim(c(0,1)) 
+#facet_grid(~chr, scales = 'free_x', space = 'free_x', switch = 'x')
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
+Fst_plot
+dev.off()
+
+
+tped <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_patho.vcf.tped", 
+                   header = FALSE, sep = "\t")
+tfam <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_patho.vcf.tfam", 
+                   header = FALSE, sep = "\t")
+colnames(tped)[1:4] = c("CHROM", "p1", "p2", "POS" )
+tped_red = tped[, c(1:4, seq(5, dim(tped)[2],2))]
+
+# convert.snp.tped(tped="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.tped",
+# tfam="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.tfam",
+# out="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.raw",strand="+")
+
+genot_list <- plant_clim$clim_data
+
+
+# merge genot_list and tfam on pk and V1 respectively
+tfam_info <- dplyr::left_join(tfam, genot_list, by = c("V1" = "Sequence_ID"))
+tfam_info <- filter(tfam_info, V1 %in% genot_list$Sequence_ID)
+tped_red <- tped_red[,c(1:4,(which(tfam_info$V1 %in% genot_list$Sequence_ID) +4))]
+snp_8295146 <- tped_red[which(tped_red$POS==8295845),]
+colnames(snp_8295146) = colnames(tped_red)
+tfam_info$snp_8295146 <- t(snp_8295146[5:length(snp_8295146)])
+
+
+
+#######################################################################
+# Map of SNP location
+#######################################################################
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+acd6_map <- ggplot(data = world) +
+  geom_sf() +
+  geom_jitter(data = tfam_info[which(tfam_info$snp_8295146!=0),], 
+             aes(x = as.numeric(Long), y = as.numeric(as.character(Lat)),  colour = (snp_8295146)), 
+             size = 2,
+             alpha =.5
+             ) +
+  coord_sf(xlim = c(-20, 40), ylim = c(30, 75), expand = FALSE) +
+  scale_color_viridis_d() +
+  theme_bw() +
+  theme(legend.position="bottom") +
+  xlab("") + 
+  ylab("")
+
+
+ggplot(data = tfam_info, aes(x = snp_8295146, y = as.numeric(as.character(Lat)))) +
+  geom_boxplot()
+
+#######################################################################
+# Analysis of SNP frequency in 1001 genomes
+#######################################################################
+tped <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.tped", 
+                   header = FALSE, sep = "\t")
+tfam <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.tfam", 
+                   header = FALSE, sep = "\t")
+colnames(tped)[1:4] = c("CHROM", "p1", "p2", "POS" )
+tped_red = tped[, c(1:4, seq(5, dim(tped)[2],2))]
+
+# convert.snp.tped(tped="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.tped",
+                 # tfam="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.tfam",
+                 # out="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_1001.raw",strand="+")
+
+genot_list <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/1001_genomes_list.csv",
+                         header = T, sep =",")
+
+
+# merge genot_list and tfam on pk and V1 respectively
+tfam_info <- dplyr::left_join(tfam, genot_list, by = c("V1" = "pk"))
+snp_8295146 <- tped_red[which(tped_red$POS==8295845),]
+tfam_info$snp_8295146 <- t(snp_8295146[5:length(snp_8295146)])
+
+thousand_map <- ggplot(data = world) +
+  geom_sf() +
+  geom_jitter(data = tfam_info[which(tfam_info$snp_8295146!=0),], 
+              aes(x = as.numeric(longitude), y = as.numeric(as.character(latitude)),  colour = (snp_8295146)), 
+              size = 2,
+              alpha =.5
+  ) +
+  coord_sf(xlim = c(-20, 40), ylim = c(30, 75), expand = FALSE) +
+  scale_color_viridis_d() +
+  theme_bw() +
+  theme(legend.position="bottom") +
+  xlab("") + 
+  ylab("")
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/map_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
+plot_grid(acd6_map + theme(axis.title.x=element_blank(),
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(), 
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank()), 
+          thousand_map +theme(axis.title.x=element_blank(),   
+          axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(), 
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank()))
+
+dev.off()
+
+ggplot(data = tfam_info[tfam_info$snp_8295146!="0",], aes(x=longitude, y = latitude, col = snp_8295146)) +
+  geom_point()
+
+ggplot(data = tfam_info, aes(x = snp_8295146, y = latitude)) +
+  geom_boxplot()
+
 
 #######################################################################
 # Calculate kinship and pca
@@ -77,7 +216,7 @@ fst99 <- as.numeric(fst_quantile[2])
 fst_mat$new_pos <- c(1:dim(fst_mat)[1])
 acd6 = fst_mat[which(fst_mat$fst==max(fst_mat$fst, na.rm=TRUE)),]$new_pos[1]
 
-tsv = read.table("./acd6.tsv", sep="\t")
+tsv = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.tsv", sep="\t")
 hm=tsv[,c(28,1:20)]
 mine=fst_mat[which(fst_mat$fst == max(fst_mat$fst, na.rm=T)),]
 
@@ -135,7 +274,18 @@ annot_trac <- GeneRegionTrack(ranges = TAIR10_genes,
 
 variants <-read.vcf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.recode.vcf")
 variants2 <- VCFloci("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.recode.vcf")
-variants3<-read.vcf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/mapping/acd6.vcf")
+variants3<-"/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/mapping/acd6_parsed.vcf"
+
+
+
+
+snpgdsVCF2GDS(variants3, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.gds", method="biallelic.only")
+genofile_acd6 <- snpgdsOpen("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.gds")
+samp.id <- read.gdsn(index.gdsn(genofile_acd6, "sample.id"))
+snp.id <- read.gdsn(index.gdsn(genofile_acd6, "sample.id"))
+fst <- snpgdsFst(genofile_acd6, sample.id = clim$Plant_ID, 
+                 with.id = TRUE,
+                 snp.id = snp.id, population = as.factor(clim$cluster), maf = 0.10)
 colnames(variants) <- variants2$POS
 mine <- variants[,which(colnames(variants)=="8295146")]
 samps = as.character(plant_clim$clim_data$Sequence_ID)

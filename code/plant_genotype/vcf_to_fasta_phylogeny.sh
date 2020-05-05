@@ -40,6 +40,22 @@ vcftools --vcf poolsGVCF.filtered_snps_final.PASS.bi.vcf \
 	--chr chr4 --from-bp 8294164 --to-bp 8299195 --recode \
        	--out acd6
 
+############################################################
+# Perform fst analysis
+############################################################
+vcftools --vcf poolsGVCF.filtered_snps_final.PASS.bi.vcf \
+	--weir-fst-pop cluster1.pop --weir-fst-pop cluster3.pop --out fst_1_3
+
+vcftools --vcf poolGVCF_gander.vcf \
+	--weir-fst-pop cluster1.pop --weir-fst-pop cluster3.pop --out poolGVCF_gander_fst_1_3
+
+############################################################
+# Convert acd6 to tped and tfam
+############################################################
+
+vcftools --plink-tped --out acd6_patho.vcf --vcf acd6.recode.vcf
+
+
 vcftools --gzvcf acd6.recode.vcf.gz --freq --out allel_freq
 #output tsv (will be used for list of samples below)
 vk vcf2tsv long acd6.recode.vcf.gz > acd6.tsv
@@ -64,6 +80,24 @@ do
 done
 
 cat *.acd6_copy.fasta  | sed 's/:/\t/g'> acd6_all_samples.fasta
+
+
+
+############################################################
+# Look at 1001. The resulting vcf works to be read in by IBS.R
+############################################################
+#I downloaded the acd6 locus from the lab site
+#I couldn't get gatk to work for this. Was outputting NA in files
+# gatk VariantsToTable \
+# 	-V acd6_74936542461bf48799441b87dd6ebece_fullgenome.vcf \
+# 	-O output.table -disable-sequence-dictionary-validation \
+# 	-GF GT -F POS=8295146
+
+vcftools --vcf acd6_74936542461bf48799441b87dd6ebece_fullgenome.vcf --max-alleles 2 --remove-indels --recode \
+ --out biallelic_acd6_74936542461bf48799441b87dd6ebece_fullgenome.vcf 
+
+vcftools --plink-tped --out acd6_1001 --vcf biallelic_acd6_74936542461bf48799441b87dd6ebece_fullgenome.vcf.recode.vcf
+
 
 ############################################################
 # Now it's time to align the sequences with the Todesco sequences
