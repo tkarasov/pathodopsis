@@ -16,7 +16,7 @@
 
 
 #this script maps all metagenome reads to acd6 gene
-cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/mapping
+cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_mapping
 reference="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_mapping/todesco_major_alleles.fasta"
 raw_reads="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/raw_concat"
 

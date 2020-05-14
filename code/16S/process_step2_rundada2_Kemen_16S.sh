@@ -33,17 +33,17 @@ cd $output_direc
 # first filter with dada2
 $amp_general/dada2_filter_tlk.R \
        -f $output_direc --truncLen 270,200 \
-       --maxEE 3,7 --truncQ 2 --threads 9 --f_match _R1.*fastq \
-       --r_match _R2.*fastq --verbose TRUE
+       --maxEE 3,7 --truncQ 2 --threads 16 --f_match _R1.fastq \
+       --r_match _R2.fastq --verbose TRUE --sample_delim _
 
 # then infer
 $amp_general/dada2_inference_tlk.R \
-       -f $output_direc/filtered_fastqs --seed 1659 -t 9 --verbose --plot_errors
+       -f $output_direc/filtered_fastqs --seed 1659 -t 16 --verbose --plot_errors
 
 # Remove chimeric variants and assign taxonomy. Species assignment can be done within a script
 $amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
  -r $silva/silva_nr_v132_train_set.fa.gz \
- -t 9 --skip_species --verbose TRUE \
+ -t 16 --skip_species --verbose TRUE \
  --tax_out $output_direc/tax_final.rds
 
 echo "Done with taxonomy assignments, moving onto converting dada table"

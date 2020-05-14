@@ -16,25 +16,23 @@
 
 
 #this script maps all metagenome reads to acd6 gene
-cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/mapping
-reference="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_chr_all.fas"
+cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_mapping/
+#reference="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_mapping/todesco_major_alleles.fasta"
 raw_reads="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/raw_concat"
-
+#reference="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_mapping/NC_003075.7.8293409..8299949.fa"
+reference="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_chr_all_recode.fas"
+#alt_file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_mapping/todesco_major_alleles.alt"
 # The reference needs to be indexed but if indexed already don't run
 #bwa index ${reference}
 total_files=`ls $raw_reads | grep R1.fq.gz | wc -l`
-echo "mapping started" >> map.log
-echo "---------------" >> map.log
-
-
+#echo "mapping started" >> map.log
+#echo "---------------" >> map.log
 
 ############################################################
-# Map reads with bwa
+# Map reads with with alternate contigs
 ############################################################
 arr=($(ls $raw_reads | grep R1.fq.gz))
 INPUTFILENAME="${INPUTFILES[$SGE_TASK_ID - 1]}"
-
-
 
 
 #for ((i=0; i<$total_files; i+=1))
@@ -51,17 +49,37 @@ read2=$raw_reads/$sample_name2
 mkdir $sample.logs
 bwa mem -R "@RG\tID:$sample\tSM:$sample" -t 12 ${reference} ${read1} ${read2} 2> $sample.logs/bwa.err|\
     /ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/samtools/samtools view -b -F 4 |
-    /ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/samtools/samtools sort -m 970m - > "$sample".bam 2> $sample.logs/samsort.err
-#}
+    /ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/samtools/samtools sort -m 970m - > \
+    "$sample".bam 2> $sample.logs/samsort.err
+samtools index "$sample".bam
+
+
+
+
 
 # ############################################################
-# # Call SNPs with freebayes
+# # Map reads with bwa (normal mapping)
 # ############################################################
-# #make sure the reference index is gone
-# rm /ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_TAIR10.fasta.fai
-
-# #now run freebayes
-# freebayes -f $reference --gvcf  *..bam > acd6.vcf
-# sed 's/.R1..bam//g' acd6.vcf  | sed 's/.R1.//g'> acd6_parsed.vcf
+# arr=($(ls $raw_reads | grep R1.fq.gz))
+# INPUTFILENAME="${INPUTFILES[$SGE_TASK_ID - 1]}"
 
 
+
+
+# #for ((i=0; i<$total_files; i+=1))
+# #{
+# sample_name1=`echo ${arr[$SGE_TASK_ID - 1]} | awk -F "_" '{print $1}'`
+# sample_name2=`echo ${arr[$SGE_TASK_ID - 1]} | sed 's/R1/R2/g' | awk -F "_" '{print $1}'`
+# sample=`echo $sample_name1 | sed 's/.R1.fq.gz//g'`
+# echo "[mapping running for] $sample_name1"
+# printf "\n"
+# echo "bwa mem -t 12 ${reference} ${arr[$SGE_TASK_ID - 1]} ${sample_name2} > $sample.sam" >> "$sample".bam 
+# read1=$raw_reads/$sample_name1
+# read2=$raw_reads/$sample_name2
+# #sample=`echo $sample_name1 | sed 's/fq.gz//g'`
+# mkdir $sample.logs
+# bwa mem -R "@RG\tID:$sample\tSM:$sample" -t 12 ${reference} ${read1} ${read2} 2> $sample.logs/bwa.err|\
+#     /ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/samtools/samtools view -b -F 4 |
+#     /ebio/abt6_projects9/metagenomic_controlled/Programs/metagenomics_pipeline_software/samtools/samtools sort -m 970m - > \
+#     "$sample".bam 2> $sample.logs/samsort.err
+# #}

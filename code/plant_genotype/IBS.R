@@ -20,6 +20,8 @@ library(rtracklayer)
 library(pegas)
 library(sf)
 library(rnaturalearth)
+library(cowplot)
+library(dendextend)
 
 #library(VariantAnnotation)
 
@@ -30,7 +32,7 @@ setwd("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/")
 hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744")
 
 # Load in vcf and climate data
-vcf = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander.vcf"
+vcf = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander2.vcf"
 vcf_all = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolsGVCF.filtered_snps_final.PASS.bi.vcf"
 genot_dir = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/"
 output_direc = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin/"
@@ -47,6 +49,8 @@ genemodels = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/A
 #######################################################################
 fst_1_3 <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander_fst_1_3.weir.fst",
                       header = T)
+fst_1_3_all<-read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_3.weir.fst",
+                        header = T)
 fst_1_3$new_pos <- c(1:dim(fst_1_3)[1])
 
 acd6 <- fst_1_3[which(fst_1_3$WEIR_AND_COCKERHAM_FST==max(fst_1_3$WEIR_AND_COCKERHAM_FST, na.rm =TRUE)),]$new_pos[1]
@@ -61,10 +65,26 @@ Fst_plot <- ggplot(fst_1_3, aes(x=new_pos, y=WEIR_AND_COCKERHAM_FST, col = CHROM
   xlab("Position") +
   ylab("Fst") +
   geom_vline(aes(xintercept = acd6 ),
-             alpha = 0.1) +
+             alpha = 0.5) +
   geom_text(aes(x=acd6, label="ACD6\n", y = 0.7), colour="blue", angle=90, text=element_text(size=11)) +
   ylim(c(0,1)) 
 #facet_grid(~chr, scales = 'free_x', space = 'free_x', switch = 'x')
+
+fst_1_3_acd6 <- fst_1_3_all %>% filter(CHROM=="chr4") %>% filter(POS>8283409 & POS<8300000)
+txdb <- makeTxDbFromGFF(file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_GFF3_genes.gff", format="gff3")
+gene_track <- autoplot(txdb, which=GRanges("Chr4", IRanges(8283409, 8300000)), names.expr = "gene_id")+ theme_bw()
+
+Fst_plot_on_acd6 <- ggplot(fst_1_3_acd6, aes(x=as.numeric(as.character(POS)), y=WEIR_AND_COCKERHAM_FST, col = CHROM)) + 
+  geom_point() + 
+  theme_bw() +
+  scale_color_viridis_d() +
+  xlab("Position") +
+  ylab("Fst") +
+  ylim(c(0,1)) 
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6_gene_model.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
+tracks(Fst_plot_on_acd6, gene_track, heights = c(0.7, 0.3))
+dev.off()
 
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
@@ -90,10 +110,9 @@ genot_list <- plant_clim$clim_data
 tfam_info <- dplyr::left_join(tfam, genot_list, by = c("V1" = "Sequence_ID"))
 tfam_info <- filter(tfam_info, V1 %in% genot_list$Sequence_ID)
 tped_red <- tped_red[,c(1:4,(which(tfam_info$V1 %in% genot_list$Sequence_ID) +4))]
-snp_8295146 <- tped_red[which(tped_red$POS==8295845),]
+snp_8295146 <- tped_red[which(tped_red$POS==8295844),]
 colnames(snp_8295146) = colnames(tped_red)
 tfam_info$snp_8295146 <- t(snp_8295146[5:length(snp_8295146)])
-
 
 
 #######################################################################
@@ -117,7 +136,7 @@ acd6_map <- ggplot(data = world) +
 
 
 ggplot(data = tfam_info, aes(x = snp_8295146, y = as.numeric(as.character(Lat)))) +
-  geom_boxplot()
+  geom_boxplot() + geom_jitter()
 
 #######################################################################
 # Analysis of SNP frequency in 1001 genomes
@@ -139,7 +158,7 @@ genot_list <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plan
 
 # merge genot_list and tfam on pk and V1 respectively
 tfam_info <- dplyr::left_join(tfam, genot_list, by = c("V1" = "pk"))
-snp_8295146 <- tped_red[which(tped_red$POS==8295845),]
+snp_8295146 <- tped_red[which(tped_red$POS==8295844),]
 tfam_info$snp_8295146 <- t(snp_8295146[5:length(snp_8295146)])
 
 thousand_map <- ggplot(data = world) +
@@ -174,9 +193,59 @@ ggplot(data = tfam_info[tfam_info$snp_8295146!="0",], aes(x=longitude, y = latit
   geom_point()
 
 ggplot(data = tfam_info, aes(x = snp_8295146, y = latitude)) +
-  geom_boxplot()
+  geom_boxplot() +
+  geom_jitter()
+
+#######################################################################
+# Plot pathodopsis acd6 on hierarchical cluster
+#######################################################################
+vcf_acd6 <- "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/merged_acd6.vcf"
+snpgdsVCF2GDS(vcf_acd6, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.gds", method="biallelic.only")
+genofile_acd6 <- snpgdsOpen("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6.gds")
+
+snp_table <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/merged_tables.txt", 
+                        sep = "\t", header = T, row.names = 1)
+# #first_match <- match(unique(snp_table$POS), snp_table$POS)
+# snp_table <- snp_table[first_match,]
+# rownames(snp_table) <- snp_table[,1]
+# snp_table <- snp_table %>% select(-1)
+# snp_table$poo <- "NA"
+# snp_table <- data.frame(t(snp_table))[c(1:75),]
+#sapply(snp_table, function(x){x <- gsub("./.",NA,(x))})
+
+convert_snp<-function(x){
+  lev <- levels(x)[1]
+  xnew <-as.character(x)
+  xnew[x!=lev]<-0
+  xnew[x==lev]<-1
+  return((as.numeric(xnew)))
+}
+
+#exclude low
+snp_keep <- data.frame(t(snp_table))
+snp_fin <- sapply(snp_keep, convert_snp)
+good <- which(apply(snp_fin, 1, function(x) sum(is.na(x)))<70)
+rownames(snp_fin) <- rownames(snp_keep)
+snp_fin <- snp_fin[good,]
+hclustfunc <- function(x) hclust(x, method="complete")
+distfunc <- function(x) as.dist((1-cor(t(x), use="all.obs")/2))
+d <- dist(snp_fin)#dist(snp_fin, method = "euclidean") #, metric = c("gower"))
+hc <- hclustfunc(d) #, method = "complete")
+dend <- as.dendrogram(hc)
+colLab <- snp_fin[labels(dend),"X8297824"]
+colLab[colLab==1]<-"RED"
+colLab[colLab==0]<-"GREEN"
+labels_colors(dend) <- colLab 
+labels(dend) <- gsub(".GT","", labels(dend))
+clust_dend<-plant_clim$clim_data[match( labels(dend),plant_clim$clim_data$Plant_ID),]$cluster
+labels_colors(dend)<-clust_dend*3
+plot(dend)
 
 
+
+snp_table1 <- sapply(snp_table, function(x){x <- gsub("./.",NA,x)})
+rownames(snp_table1) <- rownames(snp_table)
+pca <- snpgdsPCA(genofile_acd6, num.thread = 4, maf=0.05)
 #######################################################################
 # Calculate kinship and pca
 #######################################################################
@@ -194,8 +263,9 @@ snp.position <- read.gdsn(index.gdsn(genofile, "snp.position"))
 clim = clim[samp.id,]
 clim = clim[!is.na(clim[,1]),]
 
-
+ggplot(pca,aes(x=eigenvect[,1], y=eigenvect[,2])) + geom_point()
 pca <- snpgdsPCA(genofile, num.thread = 4, maf=0.05)#, snp.id=snpset.id, num.thread=2)
+pca$color <- grepl("PA", pca$sample.id)
 fst <- snpgdsFst(genofile, sample.id = clim$Plant_ID, 
                  with.id = TRUE,
                  snp.id = snp.id, population = as.factor(clim$cluster), maf = 0.10)
@@ -240,6 +310,23 @@ Fst_plot <- ggplot(fst_mat, aes(x=new_pos, y=fst, col = chr)) +
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
 Fst_plot
 dev.off()
+
+#And just within ACD6
+Fst_plot <- ggplot(fst_mat, aes(x=new_pos, y=fst, col = chr)) + 
+  geom_point() + 
+  #facet_grid(rows = vars(chr), scales = "free_x", switch = "x") +
+  theme_bw() +
+  geom_hline(aes(yintercept = fst99), lty = "dashed") +
+  scale_color_viridis_d() +
+  xlab("Position") +
+  ylab("Fst") +
+  geom_vline(aes(xintercept = acd6 ),
+             alpha = 0.1) +
+  geom_text(aes(x=acd6, label="ACD6\n", y = 0.7), colour="blue", angle=90, text=element_text(size=11)) +
+  ylim(c(0,1)) 
+#facet_grid(~chr, scales = 'free_x', space = 'free_x', switch = 'x')
+
+
 
 
 
