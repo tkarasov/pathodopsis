@@ -1,0 +1,62 @@
+SPB	P0049	Pla	PC0049
+SPB	P0051	LL	PC0051
+SPB	P0052	Bla	PC0052
+FRS	P0061	Noz	PC0110
+FRS	P0064	ISS	PC0112
+FRS	P0065	VED	PC0113
+FRS	P0069	ALL	PC0117
+FRN	P0145	LDV	PC0076
+FRN	P0147	CAM	PC0077
+SPC	P0097	VAE	PC0097
+SPC	P0098	CHO	PC0099
+ENS	P0121	Kenilworth	PC0169
+ENS	P0122	Tewkesbury	PC0170
+SSD	P0265	Lund-1	PC0183
+SSD	P0269	Torne-1	PC0187
+SSD	P0270	Son-1	PC0188
+SSD	P0271	Vita-1	PC0189
+SSD	P0272	Sand-1	PC0190
+SSD	P0274	Ragnar-1	PC0192
+
+I have not solved what I wrote to Talia and Gautam earlier, but based on missing data supporting that we actually sampled thaliana at these sites, I would exclude entirely from the Pathodopsis list (which affects another two PC samples):
+
+Tour_IDSite_IDSite_NamePlant_IDs on which exclusion is basedCapsella affected
+SPC	P0099	NAV	PA0343, PA0344	
+SPC	P0102	TOE	PA0367, PA0370	-
+SPC	P0103	PIZ	PA0373, PA0376	PC0100
+SPC	P0106	ZAR	PA0391, PA0394	
+SPC	P0107	PED	PA0397, PA0499	PC0103
+SPC	P0108	NAC	PA0403, PA0406
+
+
+
+Hi Talia, 
+
+16 sites - I added the name of the respective park in the list below. These are all areas that stay green in Google Maps when you zoom in. In the English parks, there are sometimes regions within the parks that are specified as 'Nature Reserve’, but the sampling sites are outside those (is indicated below). 
+Plant IDs concerned are also listed. 
+
+Tour_ID	Site_ID	Site_Name	Lat	Long	PA	PA	PC	Type	
+FRS	P0066	Et	44.64323	2.56623	PA0311	PA0314	PC0114	Parc naturel regional de lAubrac	
+FRS	P0072	ROM	45.53347	4.85027	PA0435	PA0436	PC0118	Parc naturel regional du Pilat	
+FRN	P0147	CAM	48.2679	-4.58567	PA0613	PA0616		Parc naturel regional d'Amorique	
+FRN	P0151	NNS	47.26093	-0.01284	PA0641	PA0648	PC0078	Parc naturel regional Loire-Anjou-Touraine	
+SPC	P0100	LAM	40.56675	-3.88946	PA0361	PA0364		Parque Regional Cuenca Alta Manzanares	
+SPC	P0109	CER	40.73706	-4.0691	PA0409	PA0412		Parque Regional Cuenca Alta Manzanares	
+GEN	P0160	Eiskeller	52.58358	13.13688	PA0484	PA0485	PC0083	Spandauer Forst	
+ENS	P0123	Batsford	51.99802	-1.73753	PA0961	PA0963		Cotswolds AONB	
+ENS	P0135	Wye College	51.18385	0.93995	PA1036	PA1042		Kent Downs AONB	
+ENN	P0137	Betws-y-Coed	53.09408	-3.80547	PA1049	PA1050		Gwydir Forest Park	
+ENN	P0143	Bakewell	53.21505	-1.67419	PA1085	PA1089	PC0175	Peak District National Park (but outside the contained Nature Reserve areas)	
+ENN	P0218	Windermere	54.37309	-2.90755	PA1147	PA1149		Lake District National Park (but outside the contained Nature Reserve areas)	
+ENN	P0219	Ambleside	54.42704	-2.96201	PA1156	PA1157		Lake District National Park (but outside the contained Nature Reserve areas)	
+ENN	P0220	Dove_Cottage	54.4543	-3.01655	PA1159			Lake District National Park (but outside the contained Nature Reserve areas)	
+ENN	P0221	Keswick	54.60192	-3.13684	PA1165	PA1166		Lake District National Park (but outside the contained Nature Reserve areas)	
+ENN	P0223	Alston	54.81207	-2.44087	PA1178	PA1179		North Pennines AONB	
+									
+
+Four more are in city-park type locations. I’d leave those in. 
+
+SPB	P0051	LL	41.5901	2.48788
+ENS	P0128	Wisley Garden	51.31384	-0.47081
+ENS	P0131	Maidstone	51.26886	0.53955
+ENN	P0230	Holyrood_Park	55.94075	-3.1586
