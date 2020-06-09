@@ -48,8 +48,10 @@ cd $output_direc
 #        -f $output_direc/filtered_fastqs --seed 1659 -t 9 --verbose --plot_errors
 
 # Remove chimeric variants and assign taxonomy
+#used to use fin_oomycete_ITS.fasta
+
 $amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
- -r $tax_ref/fin_oomycete_ITS.fasta  \
+ -r $tax_ref/Oomycete_Fungi_ITS/ITS1/my_amended_Fun_Oomy_DB_040714_clean.ITS1.fasta  \
  -t 9 --skip_species --verbose TRUE \
  --tax_out $output_direc/tax_final.rds
 
@@ -57,7 +59,8 @@ echo "Done with taxonomy assignments, moving onto converting dada table"
 
 # generate table
  $amp_general/convert_dada2_out.R -i \
-       $output_direc/seqtab_final.rds -b $output_direc/seqtab.biom.tsv -f $output_direc/seqtab.fasta -S-taxa_in $output_direc/tax_final.rds
+       $output_direc/seqtab_final.rds -b $output_direc/seqtab.biom.tsv -f $output_direc/seqtab.fasta \
+        -S-taxa_in $output_direc/tax_final.rds
 
 echo "Done with converting dada2 moving on to biom conversion"
 
@@ -77,6 +80,12 @@ biom summarize-table -i seqtab.biom -o seqtab_summary.txt
 
 #if I want to rarefy???
 # single_rarefaction.py -i seqtab_tax.biom -o seqtab_tax_rarified.biom -d 4000
+
+
+# map assigned ASVs to Oomycete databases
+bwa index $tax_ref/fin_oomycete_ITS.fasta
+bwa mem $tax_ref/fin_oomycete_ITS.fasta $output_direc/seqtab.fasta > aln.sam
+
 
 
 
