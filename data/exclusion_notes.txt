@@ -1,0 +1,42 @@
+Tour_ID	Site_ID	Site_Name		what_to_exclude	why	other1	other2	other3	other4
+SPB	P0049	Pla	PC0049	PC	not_PC				
+SPB	P0051	LL	PC0051	PC	not_PC				
+SPB	P0052	Bla	PC0052	PC	not_PC				
+FRS	P0061	Noz	PC0110	PC	not_PC				
+FRS	P0064	ISS	PC0112	PC	not_PC				
+FRS	P0065	VED	PC0113	PC	not_PC				
+FRS	P0069	ALL	PC0117	PC	not_PC				
+FRN	P0145	LDV	PC0076	PC	not_PC				
+FRN	P0147	CAM	PC0077	PC	not_PC				
+SPC	P0097	VAE	PC0097	PC	not_PC				
+SPC	P0098	CHO	PC0099	PC	not_PC				
+ENS	P0121	Kenilworth	PC0169	PC	not_PC				
+ENS	P0122	Tewkesbury	PC0170	PC	not_PC				
+SSD	P0265	Lund-1	PC0183	PC	not_PC				
+SSD	P0269	Torne-1	PC0187	PC	not_PC				
+SSD	P0270	Son-1	PC0188	PC	not_PC				
+SSD	P0271	Vita-1	PC0189	PC	not_PC				
+SSD	P0272	Sand-1	PC0190	PC	not_PC				
+SSD	P0274	Ragnar-1	PC0192	PC	not_PC				
+SPC	P0099	NAV	PA0343, PA0344	all	bad_id				
+SPC	P0102	TOE	PA0367, PA0370	all	bad_id				
+SPC	P0103	PIZ	PA0373, PA0376	all	bad_id				
+SPC	P0106	ZAR	PA0391, PA0394	all	bad_id				
+SPC	P0107	PED	PA0397, PA0499	all	bad_id				
+SPC	P0108	NAC	PA0403, PA0406	all	bad_id				
+FRS	P0066	Et		all	illegal	PA0311	PA0314	PC0114	Parc naturel regional de lAubrac
+FRS	P0072	ROM		all	illegal	PA0435	PA0436	PC0118	Parc naturel regional du Pilat
+FRN	P0147	CAM		all	illegal	PA0613	PA0616		Parc naturel regional d'Amorique
+FRN	P0151	NNS		all	illegal	PA0641	PA0648	PC0078	Parc naturel regional Loire-Anjou-Touraine
+SPC	P0100	LAM		all	illegal	PA0361	PA0364		Parque Regional Cuenca Alta Manzanares
+SPC	P0109	CER		all	illegal	PA0409	PA0412		Parque Regional Cuenca Alta Manzanares
+GEN	P0160	Eiskeller		all	illegal	PA0484	PA0485	PC0083	Spandauer Forst
+ENS	P0123	Batsford		all	illegal	PA0961	PA0963		Cotswolds AONB
+ENS	P0135	Wye College		all	illegal	PA1036	PA1042		Kent Downs AONB
+ENN	P0137	Betws-y-Coed		all	illegal	PA1049	PA1050		Gwydir Forest Park
+ENN	P0143	Bakewell		all	illegal	PA1085	PA1089	PC0175	Peak District National Park (but outside the contained Nature Reserve areas)
+ENN	P0218	Windermere		all	illegal	PA1147	PA1149		Lake District National Park (but outside the contained Nature Reserve areas)
+ENN	P0219	Ambleside		all	illegal	PA1156	PA1157		Lake District National Park (but outside the contained Nature Reserve areas)
+ENN	P0220	Dove_Cottage		all	illegal	PA1159			Lake District National Park (but outside the contained Nature Reserve areas)
+ENN	P0221	Keswick		all	illegal	PA1165	PA1166		Lake District National Park (but outside the contained Nature Reserve areas)
+ENN	P0223	Alston		all	illegal	PA1178	PA1179		North Pennines AONB
