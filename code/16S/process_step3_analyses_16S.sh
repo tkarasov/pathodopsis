@@ -1,11 +1,11 @@
 #!/bin/bash
 
-scripts=/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/scripts/
+scripts=/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/
 # Make the generic OTU table
-after_dada2_make_otutable_generic.R
+$scripts/amplicon_general/after_dada2_make_otutable_generic.R
 
 # compare plant species
-$scripts/hierarchical_multiple_testing.R
+$scripts/climate/hierarchical_multiple_testing.R
 
 # PCA on the subsetted microbiome
 

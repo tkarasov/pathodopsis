@@ -138,6 +138,11 @@ rm(dna)
 mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
 GP = prune_taxa(mito, GP)
 
+#Subset to Oomycetes only
+GP_oom = subset_taxa(GP, Kingdom=="k__Oomycete")
+oom_samp <- sample_data(GP)[which(sample_data(GP)$HpA_plant==1),1]
+GP_oom <- subset_samples(GP, HpA_plant==1)
+
 flist    <- filterfun(kOverA(1, 50))
 GP50 = filter_taxa(GP, flist, TRUE )
 save(GP50, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/ITS_int_OTUtab_GP50.rds")

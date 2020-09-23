@@ -51,7 +51,7 @@ cd $output_direc
 #used to use fin_oomycete_ITS.fasta
 
 $amp_general/dada2_chimera_taxa.R -i $output_direc/seqtab.rds \
- -r $tax_ref/Oomycete_Fungi_ITS/ITS1/my_amended_Fun_Oomy_DB_040714_clean.ITS1.fasta  \
+ -r $tax_ref/my_amended_Fun_Oomy_DB_040714_clean.ITS1.fasta  \
  -t 9 --skip_species --verbose TRUE \
  --tax_out $output_direc/tax_final.rds
 
@@ -83,8 +83,8 @@ biom summarize-table -i seqtab.biom -o seqtab_summary.txt
 
 
 # map assigned ASVs to Oomycete databases
-bwa index $tax_ref/fin_oomycete_ITS.fasta
-bwa mem $tax_ref/fin_oomycete_ITS.fasta $output_direc/seqtab.fasta > aln.sam
+bwa index $tax_ref/my_amended_Fun_Oomy_DB_040714_clean.ITS1.fasta
+bwa mem $tax_ref/my_amended_Fun_Oomy_DB_040714_clean.ITS1.fasta $output_direc/seqtab_old.fasta > aln.sam
 
 
 
