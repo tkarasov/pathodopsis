@@ -95,8 +95,14 @@ my.total.matrix.num <- my.total.matrix %>%
 # calculate correlation matrix. Only possible with numeric predictors
 nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
 correlationMatrix <- cor(my.total.matrix.num[,nums], use = "pairwise.complete.obs")
-heatmap.2(correlationMatrix, scale = "none", density.info="none", trace="none")
 
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.pdf",
+    useDingbats = FALSE, fonts = "ArialMT")
+
+heatmap.2(correlationMatrix, scale = "none", density.info="none", 
+          trace="none", dendrogram = "none")
+
+dev.off()
 # summarize the correlation matrix
 # find attributes that are highly corrected (ideally >0.75)
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.50)
@@ -109,12 +115,12 @@ my_feat_selec <- function(x, y, subsets){
   set.seed(16)
   # Create a control object to set the details of feature selection that will occur next
   ctrl = rfeControl(functions = rfFuncs,
-                    method = "repeatedcv",
+                    #method = "metric",
                     repeats = 1,
                     saveDetails = TRUE,
                     verbose = TRUE)
 #I was getting a weird error with lmfuncs. Not clear if the problem was me or a bug. The following error was also found in this blog:https://community.rstudio.com/t/rfe-error-logistic-classification-undefined-columns-selected-and-match-requires-vector-arguments/23988
-
+  prettySeq <- function(x) paste("Resample", gsub(" ", "0", format(seq(along = x))), sep = "")
   rfProfile <- rfe(x = x, y = y,
                    sizes = subsets,
                    rfeControl = ctrl, #rfeControl(functions = caretFuncs))
@@ -326,7 +332,8 @@ PDSI_2 <- ggplot(data = tog, aes(x = as.factor(recode), y = PDSI)) +
   xlab(c("Class")) +
   theme_pubs
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/PDSI_class.pdf", useDingbats = FALSE, fonts = "ArialMT")
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/PDSI_class.pdf", 
+    useDingbats = FALSE, fonts = "ArialMT")
 plot_grid(PDSI_1, PDSI_2)
 dev.off()
 
