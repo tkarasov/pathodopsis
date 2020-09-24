@@ -22,10 +22,11 @@ $scripts/climate/prep_metadata.R
 # Compare plant species
 $scripts/climate/hierarchical_multiple_testing.R
 
-# PCA on the subsetted microbiome
-
-# Kriging on the microbiome
+# PCA on the subsetted microbiome and kmeans clustering into phylotypes
 $scripts/climate/kmeans_clustering.R
+
+# Kriging on the microbiome with OTU5
+$scripts/climate/kriging_OTU5_map.R
 
 # Random forest on the microbiome
 $scripts/climate/random_forest_iterative.R
