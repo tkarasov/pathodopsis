@@ -86,11 +86,14 @@ nc <- NbClust(otu_scale,diss=NULL, distance = "euclidean", min.nc=2, max.nc=6,
          method = "kmeans", index = "silhouette")
 # fviz_nbclust(otu_scale, kmeans, method = c("silhouette", "wss",
 #                                           "gap_stat"))
-clusters <- kmeans(otu_scale, 3)
+clusters <- kmeans(otu_scale, 6)
 
 plant_clim$clim_data$cluster = nc$Best.partition #clusters$kmeans.cluster
 
-
+# and now look at the silhouette score for the three clusters
+dis = dist(otu_scale)^2 # k-means clustering uses squared euclidean distances
+sil = silhouette(clusters$cluster, dis)
+plot(sil) 
 ######################
 # How about hierarchical clustering
 ######################
