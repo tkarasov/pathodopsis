@@ -65,7 +65,7 @@ for(i in 1:length(dist_vector)){
 }
 
 #subset the otu_table to the ASVs that constitute 50%
-plant_clim$otu_table <- plant_clim$otu_table[,colnames(p_order)[1:i]]
+#plant_clim$otu_table <- plant_clim$otu_table[,colnames(p_order)[1:i]]
 
 
 ######################
@@ -128,13 +128,15 @@ plant_clim$clim_data$cluster <- clusters$cluster
 # and now look at the silhouette score for the three clusters
 dis = dist(otu_scale)^2 # k-means clustering uses squared euclidean distances
 sil = silhouette(clusters$cluster, dis)
+pdf("//ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/silhouette_scored.pdf",
+    useDingbats = FALSE, font = "ArialMT", width = 7, height  = 6)
 plot(sil) 
-
+dev.off()
 ######################
 # How about hierarchical clustering
 ######################
 d <- (otu_scale) %>% dist()
-hc <- hclust(d, method = "UGPMA")
+hc <- hclust(d)
 hc$labels <- clusters$cluster
 cl_members <- cutree(tree = hc, k = 3)
 #plot(hc, hang = -1, cex = 0.6,  leaflab = "none")
