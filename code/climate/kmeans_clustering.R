@@ -11,7 +11,8 @@ library(spData)
 library(spDataLarge)
 library(wesanderson)
 library(cowplot)
-library(NbClust)
+# library(NbClust)
+library(dendextend)
 
 
 #The goal of this script is to identify clusters in A. thaliana data. With this script we identified two major OTU clusters via kmeans clustering
@@ -34,13 +35,47 @@ plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,],
 
 
 ######################
+# How many ASVs to consider (to reduce complexity). Consider as many as constitute an average of 50% of microbiome
+######################
+
+p = plant_clim$otu_table/1000
+p_order = p[,order(colSums(-p, na.rm=T))]
+
+
+plot_dist <- function(p_order, n){
+  keep = p_order[,c(1:n)]
+  mean_ = mean(rowSums(keep))
+  return(mean_)
+}
+
+dist_vector <- c(dim(p_order)[1])
+
+for(i in 1:dim(p_order)[2])
+  dist_vector[i] = plot_dist(p_order, i)
+
+for(i in 1:length(dist_vector)){
+  print(i)
+  if(dist_vector[i]<0.5){
+  print("pass")
+  }
+  if(dist_vector[i]>=0.5){
+  print(paste("The 50% value is ", i, sep=""))
+  break
+}
+}
+
+#subset the otu_table to the ASVs that constitute 50%
+plant_clim$otu_table <- plant_clim$otu_table[,colnames(p_order)[1:i]]
+
+
+######################
 # What is the optimal number of clusters?
 ######################
 set.seed(16)
 
 otu_scale <- plant_clim$otu_table
-#otu_scale <- ((apply(otu_scale, 1, function(i) i/sum(i))))
-#otu_scale <- scale(t(otu_scale)) DON'T SCALE!! These data are already subsampled 1000 reads
+
+#now we do a hellinger transformation of the scaled data
 otu_scale <- sqrt(otu_scale/1000)
 
 ######################
@@ -82,29 +117,34 @@ cat("silhouette-optimal number of clusters:", pamkzk.best, "\n")
 ######################
 # So let's do k-means clustering with three clsuters
 ######################
-nc <- NbClust(otu_scale,diss=NULL, distance = "euclidean", min.nc=2, max.nc=6, 
-         method = "kmeans", index = "silhouette")
+# nc <- NbClust(otu_scale, diss=NULL, distance = "euclidean", min.nc=2, max.nc=6, 
+#       method = "kmeans", index = "silhouette")
 # fviz_nbclust(otu_scale, kmeans, method = c("silhouette", "wss",
 #                                           "gap_stat"))
-clusters <- kmeans(otu_scale, 6)
+clusters <- kmeans(otu_scale, 3)
 
-plant_clim$clim_data$cluster = nc$Best.partition #clusters$kmeans.cluster
+plant_clim$clim_data$cluster <- clusters$cluster
 
 # and now look at the silhouette score for the three clusters
 dis = dist(otu_scale)^2 # k-means clustering uses squared euclidean distances
 sil = silhouette(clusters$cluster, dis)
 plot(sil) 
+
 ######################
 # How about hierarchical clustering
 ######################
-d <- sqrt(otu_scale) %>% dist()
-hc <- hclust(d)
+d <- (otu_scale) %>% dist()
+hc <- hclust(d, method = "UGPMA")
+hc$labels <- clusters$cluster
 cl_members <- cutree(tree = hc, k = 3)
 #plot(hc, hang = -1, cex = 0.6,  leaflab = "none")
 plot(x = hc, labels =  row.names(hc), cex = 0.5)
-rect.hclust(tree = hc, k = 2, which = 1:2, border = 1:2, cluster = cl_members)
+rect.hclust(tree = hc, k = 3, which = 1:3, border = 1:2, cluster = cl_members, )
 plant_clim$clim_data$hc_cuttree2 = cl_members
+dend = as.dendrogram(hc) %>% set("leaves_colors", hc$labels) %>% set("leaves_pch", 16) 
+#labels_colors(dend) <- hc$labels
 
+ggplot(dend, labels = FALSE) 
 #choosing optimal clusters supported by data
 #https://www.datanovia.com/en/lessons/computing-p-value-for-hierarchical-clustering/
 # pv <- parPvclust(cl=NULL, t(otu_scale), method.hclust = "average",
