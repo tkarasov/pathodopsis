@@ -39,16 +39,16 @@ otu_name = "seq_1"
 # only_ath <- subset_samples(GP_at15_all, Subject %in% all_metadata$Sequence_ID)
 # my.responseorig <- data.frame(sqrt(sqrt(otu_table(only_ath)+1)) %>% dist() %>% cmdscale())
 
-my.responseorig <- data.frame(sqrt(sqrt(plant_clim$otu_table+1))) %>% dist() %>% cmdscale(eig = F) %>% data.frame()
+my.responseorig <- data.frame(sqrt(plant_clim$otu_table)) %>% dist() %>% cmdscale(eig = F) %>% data.frame()
 
 #colnames(my.response) <- "otu"
 colnames(my.responseorig) = c("MDS1", "MDS2")
 col1 = plant_clim$clim_data$Tour_ID
 
-ggplot(data = my.responseorig, aes(x=MDS1, y=MDS2)) + 
-  geom_point(aes(color = col1), cex = 3) +
-  scale_color_viridis_d() +
-  theme_bw()
+# ggplot(data = my.responseorig, aes(x=MDS1, y=MDS2)) + 
+#  geom_point(aes(color = col1), cex = 3) +
+#  scale_color_viridis_d() +
+#  theme_bw()
   
 #################################
 # Set response variable as MDS1
@@ -90,7 +90,7 @@ my.total.matrix.num <- my.total.matrix %>%
             Strata_road, Strata_wall_tree, Strata_water, 
             Lat, Long, Date, Strata_wall_shrub, 
             Site_Name, Site_name, Growing_on, 
-            Rosette_color, Ground_type, Heterogeneity))
+            Rosette_color, Ground_type, Heterogeneity, cluster, hc_cuttree2))
 
 # calculate correlation matrix. Only possible with numeric predictors
 nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
@@ -100,7 +100,7 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.
     useDingbats = FALSE, fonts = "ArialMT")
 
 heatmap.2(correlationMatrix, scale = "none", density.info="none", 
-          trace="none", dendrogram = "none")
+          trace="none", dendrogram = "none", col = Colors)
 
 dev.off()
 # summarize the correlation matrix
