@@ -14,7 +14,7 @@ library(intrval)
 metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv", header=T, fill =TRUE, sep = "\t") #%>% select(-c(X, X.1, X.2))
 
 #filter out the weird rows that don't start with P
-metadata2 = metadata[which(grepl("^P",metadata$Sequence_ID))),]
+metadata2 = metadata[which(grepl("^P",metadata$Sequence_ID)),]
 
 
 #choose only A. thaliana
@@ -80,19 +80,26 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_meta
 #################################
 # Step 2: Read in response variables
 #################################
+# Load the reduced dataset
 load(file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds")
 
+# Also load the original GP50 for downstream comparative analysis
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
 
 #################################
 # Step 3: Reorder climate variables according to OTU table
 #################################
-phy_seq_reorder <- subset_samples(GP_at15_all, Subject %in% all_metadata$Sequence_ID)
-all_metadata_reorder <- all_metadata[match(sample_data(phy_seq_reorder)$Subject, all_metadata$Sequence_ID),] 
+phy_seq_reorder <- subset_samples(GP_at15_all, samples.out %in% all_metadata$Sequence_ID)
+all_metadata_reorder <- all_metadata[match(sample_data(phy_seq_reorder)$samples.out, all_metadata$Sequence_ID),] 
 
-# otu_name = "seq_1"
-# #my.response <- otu_table(GP_at15_all)[,otu_name]
-# only_ath <- subset_samples(GP_at15_all, Subject %in% all_metadata$Sequence_ID)
-
+#################################
+# Step 4: Remake GP50 with amended metadata and reduced samples
+#################################
+phy_seq50_reorder <- subset_samples(GP50, samples.out %in% all_metadata$Sequence_ID)
+GP50_all_metadata_reorder <- all_metadata[match(sample_data(phy_seq50_reorder)$samples.out, all_metadata$Sequence_ID),]
+rownames(GP50_all_metadata_reorder) <- GP50_all_metadata_reorder$Sequence_ID
+sample_data(phy_seq50_reorder) <- sample_data(GP50_all_metadata_reorder)
+save(phy_seq50_reorder, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/GP50_subset_fin.rds")
 
 #################################
 # Create S3 object
