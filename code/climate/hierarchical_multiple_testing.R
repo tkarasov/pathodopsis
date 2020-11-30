@@ -22,42 +22,37 @@ library(viridis)
 #######################################################################
 # Load the phyloseq object generated in after_dada2_make_otutable
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds")
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/GP50_subset_fin.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
+#load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds")
+
 
 
 # #######################################################################
 # # Prune phyloseq to only those samples with at least 1000 reads, and to those ASVs that are zero add 1
 # #######################################################################
-# GP_fam = tax_glom(GP50, "Family")
-# 
-# #Prune samples with unknown family
-# keep = tax_table(GP_fam)[tax_table(GP_fam)[,"Family"]!="Unknown_Family",]
-# GP_fam = prune_taxa(rownames(keep), GP_fam)
-# 
-# #rename the taxa with family
-# taxa_names(GP_fam) = tax_table(GP_fam)[,"Family"]
-
-#add 1 to every sample to enable geometric mean calculation in the variance stabilization
-#otu_table(GP50) = otu_table(GP50) + 1
-
 #subset to only my phylotypes of interest
 GPmine <- prune_taxa(colnames(otu_table(GP_at15_all)), GP50)
+
 
 # #######################################################################
 # For differential analysis use limma-voom
 # #######################################################################
 # https://ucdavis-bioinformatics-training.github.io/2017-September-Microbial-Community-Analysis-Workshop/friday/MCA_Workshop_R/phyloseq.html
 m = as(otu_table(GPmine), "matrix")
+
 # Add one to protect against overflow, log(0) issues.
 m = m + 1
+
 # Define gene annotations (`genes`) as tax_table
 taxonomy = tax_table(GPmine, errorIfNULL=FALSE)
 if( !is.null(taxonomy) ){
   taxonomy = data.frame(as(taxonomy, "matrix"))
 } 
+
 # Now turn into a DGEList
 d = DGEList(counts=t(m), genes=taxonomy, remove.zeros = TRUE)
-
 
 # Calculate the normalization factors
 z = calcNormFactors(d, method="RLE")
@@ -70,16 +65,13 @@ if( !all(is.finite(z$samples$norm.factors)) ){
 
 #plotMDS(z, col = as.numeric(factor(sample_data(GP_at15_all)$Species)), labels = as.numeric(factor(sample_data(GP_at15_all)$Species)))
 
-
-
-
 # #######################################################################
 # Test difference between soil and not soil
 # #######################################################################
 
 # Creat a model based on Slash_pile_number and depth
 GP_mat <- data.frame(as(sample_data(GPmine), "matrix"))
-mm <- model.matrix(~ 0 + Sample_type + TourID, data= GP_mat) # specify model with no intercept for easier contrasts
+mm <- model.matrix(~ 0 + Host_Species + Tour_ID, data= GP_mat) # specify model with no intercept for easier contrasts
 
 #estimate dispersions
 # , edgeR uses the Cox-Reid profile-adjusted
@@ -99,25 +91,9 @@ plotQLDisp(fit)
 lrt_soil <- glmQLFTest( fit, contrast = c(1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
 is.de <- decideTestsDGE(lrt_soil)
 plotMD(lrt_soil, status=is.de, values =c(1,-1), col=c("red","blue"),legend="topright")
-# Comparison between cultivars C and I5 at time 6
-# contr <- makeContrasts(Sample_typeSOIL - Sample_typeM,levels = colnames(coef(fit)))
-
-# tmp <- contrasts.fit(fit, contr)
-# tmp <- eBayes(tmp)
-# tmp2 <- topTable(tmp, coef=1, sort.by = "P", n = Inf)
-# tmp2$Taxa <- rownames(tmp2)
-# tmp2 <- tmp2[,c("Taxa","logFC","AveExpr","P.Value","adj.P.Val")]
-# length(which(tmp2$adj.P.Val < 0.05)) # number of DE genes
-
-#sig_tab_diff <- 
 tmp2 <- topTags(lrt_soil, n = 1000000)$table
 sigtab = cbind(as(tmp2, "data.frame"), as(tax_table(GPmine)[rownames(tmp2), ], "matrix"))
 theme_set(theme_bw())
-
-scale_fill_discrete <- function(palname = "Set1", ...) {
-  scale_fill_brewer(palette = palname, ...)
-}
-
 sigtabgen = subset(sigtab, !is.na(Genus))
 sigtabgen_soil <- sigtabgen
 # # Phylum order
@@ -129,18 +105,17 @@ sigtabgen_soil <- sigtabgen
 # x = sort(x, TRUE)
 # sigtabgen_soil$Genus = factor(as.character(sigtabgen_soil$Genus), levels = names(x))
 
+# Now prepare for plotting
+scale_fill_discrete <- function(palname = "Set1", ...) {
+  scale_fill_brewer(palette = palname, ...)
+}
 colors <- viridis_pal()(10)
 color_phylum_map <-viridis_pal()(length(levels(sigtabgen_soil$Phylum)))
 names(color_phylum_map) <- levels(sigtabgen_soil$Phylum)
 
 phylum_levels = levels(sigtabgen_soil$Phylum)
 
-# someenv<-new.env()
-# for(i in seq(nrow(color_phylum_map)))
-# {
-#   someenv[[ color_phylum_map[i,1] ]]<- color_phylum_map[i,2]
-# }
-# testHash
+
 
 sigtabgen_soil$coloring <- color_phylum_map[sigtabgen_soil$Phylum]
 sigtabgen_soil$sig <- sigtabgen_soil$FDR<0.01
@@ -159,14 +134,15 @@ diff_soil_non_soil <-
 # #######################################################################
 GP_plant <- prune_samples(sample_data(GPmine)$Sample_type == "M", GPmine)
 good_pops <- sample_data(GP_plant)[which(sample_data(GP_plant)$Species == "Cap"),]$SiteID
-
 cap_has <- prune_samples(sample_data(GP_plant)$SiteID %in%good_pops, GP_plant)
 GP_plant <- cap_has
 m.plant = otu_table(GP_plant)
 d.plant = DGEList(counts=t(m.plant), genes=taxonomy, remove.zeros = TRUE)
 z.plant = calcNormFactors(d.plant, method="TMM")
+
 # Creat a model based on Slash_pile_number and depth
 mm.random <- model.matrix(~ 0 + Species + TourID, data=data.frame(as(sample_data(GP_plant),"matrix"))) # specify model with no intercept for easier contrasts
+
 #estimate dispersions
 # , edgeR uses the Cox-Reid profile-adjusted
 # likelihood (CR) method in estimating dispersions [22]. The CR method is derived to overcome
@@ -176,44 +152,18 @@ dge <- estimateGLMCommonDisp(z.plant, mm.random)
 dge <- estimateGLMTagwiseDisp(dge, mm.random)
 dge <- estimateGLMTrendedDisp(dge, mm.random)
 plotBCV(dge)
-
 fit <- glmQLFit(dge, mm.random, robust = TRUE)
 plotQLDisp(fit)
-
 thal.caps <- makeContrasts(SpeciesAth-SpeciesCap, levels=mm.random)
-
-
 lrt <- glmQLFTest( fit, contrast = thal.caps)#contrast = c(0,1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0))
 is.de <- decideTestsDGE(lrt)
 plotMD(lrt, status=is.de, values=c(1,-1), col=c("red","blue"),legend="topright")
 tmp3 <- topTags(lrt, n = 1000000)$table
 sigtab = cbind(as(tmp3, "data.frame"), as(tax_table(GPmine)[rownames(tmp2), ], "matrix"))
 theme_set(theme_bw())
-scale_fill_discrete <- function(palname = "Set1", ...) {
-  scale_fill_brewer(palette = palname, ...)
-}
+
 sigtabgen = subset(sigtab, !is.na(Genus))
-
-#relevel(sigtabgen$Phylum) <- phylum_le
-# Genus order
-#x = tapply(sigtabgen_soil$logFC, sigtabgen_soil$Genus, function(x) mean(x))
-#x = sort(x, TRUE)
-#sigtabgen$Genus = factor(as.character(sigtabgen$Genus), levels = names(x))
-#x = tapply(sigtabgen_soil$logFC, sigtabgen_soil$Phylum, function(x) max(x))
-#x = sort(x, TRUE)
 sigtabgen$Phylum = factor(as.character(sigtabgen$Phylum), levels = levels(sigtabgen_soil$Phylum))
-#color_phylum_map <-viridis_pal()(length(levels(sigtabgen_soil$Phylum)))
-#names(color_phylum_map) <- levels(sigtabgen_soil$Phylum)
-
-#phylum_levels = levels(sigtabgen_soil$Phylum)
-
-# someenv<-new.env()
-# for(i in seq(nrow(color_phylum_map)))
-# {
-#   someenv[[ color_phylum_map[i,1] ]]<- color_phylum_map[i,2]
-# }
-# testHash
-
 sigtabgen$coloring <- color_phylum_map[sigtabgen$Phylum]
 sigtabgen$sig <- sigtabgen$FDR<0.01
 sigtabgen$sig[sigtabgen$sig==TRUE]= 1
@@ -325,31 +275,7 @@ dev.off()
 # 
 # 
 # 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-# 
-
-
-
-
+#
 
 
 
