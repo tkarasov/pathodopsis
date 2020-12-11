@@ -24,6 +24,7 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rd
 # # Step 1: Read in metadata Feb. 2020
 # #################################
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
+
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 #plant_val = which(OTU_clim$clim_data$Host_Species=="Ath")
 
@@ -51,10 +52,11 @@ col1 = plant_clim$clim_data$Tour_ID
 #  theme_bw()
   
 #################################
-# Set response variable as MDS1
+# Set response variable as MDS1 or as cluster
 #################################
 my.response1 <- my.responseorig$MDS1 #my.responseorig[,1][match(data_frame_predictors$Sequence_ID, rownames(my.responseorig))] 
 my.response2 <- make.names(as.factor(plant_clim$clim_data$cluster))
+my.response3 <- make.names(as.factor(plant_clim$clim_data$MDS2))
 #my.response1 <- my.response[match(data_frame_predictors$Sequence_ID, rownames(my.response))] 
 #data_frame_predictors <- sample_data(GP_at15_all) %>% select (-c(PlantID, Subject))
 my.total.matrix <- cbind(plant_clim$clim_data, response = my.response1)#cbind(data_frame_predictors, "otu" = my.response1)

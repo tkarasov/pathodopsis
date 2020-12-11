@@ -25,7 +25,7 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP10
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/GP50_subset_fin.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
 #load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds")
+
 
 
 
@@ -33,7 +33,8 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP10
 # # Prune phyloseq to only those samples with at least 1000 reads, and to those ASVs that are zero add 1
 # #######################################################################
 #subset to only my phylotypes of interest
-GPmine <- prune_taxa(colnames(otu_table(GP_at15_all)), GP50)
+# phy_seq50_reorder is the original ASV data
+GPmine <- prune_taxa(colnames(otu_table(GP_at15_all)), phy_seq50_reorder)
 
 
 # #######################################################################
@@ -78,8 +79,14 @@ mm <- model.matrix(~ 0 + Host_Species + Tour_ID, data= GP_mat) # specify model w
 # likelihood (CR) method in estimating dispersions [22]. The CR method is derived to overcome
 # the limitations of the qCML method as mentioned above. It takes care of multiple factors by
 # fitting generalized linear models (GLM) with a design matrix.
+
+# This function estimates a common negative binomial dispersion parameter
 dge <- estimateGLMCommonDisp(z, mm)
+
+# 
 dge <- estimateGLMTagwiseDisp(dge, mm)
+
+# Estimates the abundance-dispersion trend by Cox-REid approximate profile likelihood
 dge <- estimateGLMTrendedDisp(dge, mm)
 plotBCV(dge)
 
