@@ -19,8 +19,11 @@ $scripts/amplicon_general/after_dada2_make_otutable_generic_ITS.R
 # Climate data and OTU data: /ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds
 $scripts/climate/prep_metadata.R
 
-# Compare plant species
+# Compare plant species with differential abundance using edgeR
 $scripts/climate/hierarchical_multiple_testing.R
+
+# Compare correlations in abundance between soil and hosts for all microbes and for pathogens
+$scripts/climate/general_spatial_dist.R
 
 # PCA on the subsetted microbiome and kmeans clustering into phylotypes
 $scripts/climate/kmeans_clustering.R
