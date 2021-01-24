@@ -1,131 +1,85 @@
-# This function does feature selection using the caret and mbench packages then does random forest modeling
-# https://machinelearningmastery.com/feature-selection-with-the-caret-r-package/
-library(caret)
-library(mlbench)
-library(Hmisc)
-library(dplyr)
-#library(randomForest)
-devtools::install_git(url = 'https://github.com/tkarasov/taliaRgeneral.git')
-library(taliaRgeneral)
-library(phyloseq)
-library(gplots)
-library(ggthemes)
-library(MLeval)
-library(plotROC)
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/color_pal.rds")
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rds")
 
-# #################################
-# # Step 2: Read in response variable and bind to metadata
-# #################################
-# load(file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds")
 
-# #################################
-# # Step 1: Read in metadata Feb. 2020
-# #################################
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
-
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
-
-my.responseorig <- data.frame(sqrt(plant_clim$otu_table)) %>% dist() %>% cmdscale(eig = F) %>% data.frame()
-
-colnames(my.responseorig) = c("MDS1", "MDS2")
-
-col1 = plant_clim$clim_data$Tour_ID
 
 #################################
-# Set response variable as MDS1 or as cluster
+# Functions for feature selection and random forest
 #################################
-my.response1 <- my.responseorig$MDS1 #my.responseorig[,1][match(data_frame_predictors$Sequence_ID, rownames(my.responseorig))] 
-
-my.response2 <- make.names(as.factor(plant_clim$clim_data$cluster))
-
-my.response3 <- make.names(as.factor(plant_clim$clim_data$MDS2))
-
-
-
-
-
-my.plantID <- my.total.matrix %>% dplyr::select(c(PDSI, Tour_ID, Plant_ID))
-rownames(my.plantID) <-my.total.matrix$Plant_ID
-
-my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% dplyr::select (-c(Plant_ID, Sequence_ID, Site_ID))
-
-#################################
-# Step 2: Preprocess predictor data into dummy variables
-#################################
-
-#need to get the contrast
-# Tutorial on RFE in caret: http://topepo.github.io/caret/recursive-feature-elimination.html
-
-#center and scale the predictors
-#my.total.matrix$Lat = as.numeric(as.character(my.total.matrix$Lat))
-#my.total.matrix$Long = as.numeric(as.character(my.total.matrix$Long))
-my.total.matrix[which(is.na(my.total.matrix$Land_cov)),]$Land_cov = "5000"
-my.total.matrix[my.total.matrix=="n/a"]<-NA
-list_facs <- c("Lat", "Long", "Soil_temp", 
+generate_my_total_matrix <- function(response_choice){
+  my.total.matrix <- cbind(plant_clim$clim_data, response = response_choice)#cbind(data_frame_predictors, "otu" = my.response1)
+  my.plantID <- my.total.matrix %>% dplyr::select(c(PDSI, Tour_ID, Plant_ID))
+  rownames(my.plantID) <-my.total.matrix$Plant_ID
+  my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% dplyr::select (-c(Plant_ID, Sequence_ID, Site_ID))
+  #################################
+  # Step 2: Preprocess predictor data into dummy variables
+  #################################
+  my.total.matrix[which(is.na(my.total.matrix$Land_cov)),]$Land_cov = "5000"
+  my.total.matrix[my.total.matrix=="n/a"]<-NA
+  list_facs <- c("Lat", "Long", "Soil_temp", 
                "Soil_hum", "Humidity_ground.1", 
                "Air_temp", "Air_hum", "R_diameter")
-
-my.total.matrix[,list_facs] <- lapply(my.total.matrix[, list_facs], 
+  my.total.matrix[,list_facs] <- lapply(my.total.matrix[, list_facs], 
                                       function(x) as.numeric(as.character(x))) 
 
-#normalize the predictors and impute missing values. preProcess won't work with factors. 
-my.total.matrix.num <- my.total.matrix %>% 
+  #normalize the predictors and impute missing values. preProcess won't work with factors. 
+  my.total.matrix.num <- my.total.matrix %>% 
   dplyr::select(-c(Albugo, Tour_ID, Necrosis, Strata_trees, Strata_shrubs, 
             Strata_road, Strata_wall_tree, Strata_water, 
             Lat, Long, Date, Strata_wall_shrub, 
             Site_Name, Site_name, Growing_on, 
             Rosette_color, Ground_type, Heterogeneity, cluster, hc_cuttree2))
 
-
+  return(my.total.matrix.num)
+}
+  
 #################################
-# calculate correlation matrix. Only possible with numeric predictors
+# Step 3: Preprocess data, Preprocess predictor data into dummy variables
 #################################
+preprocess_data <- function(my.total.matrix.num){
+  normalization <- preProcess(my.total.matrix.num %>% dplyr::select(-c(response)),
+                            method = c("center", "scale", "knnImpute"),
+                            na.remove = TRUE)
 
-nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
-correlationMatrix <- cor(my.total.matrix.num[,nums], use = "pairwise.complete.obs")
+  # Create a training set of 75% of the data
+  smp_size <- floor(0.75 * nrow(my.total.matrix.num))
+  set.seed(123)
+  train_ind <- sample(seq_len(nrow(my.total.matrix.num)), 
+    size = smp_size)
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.pdf",
-    useDingbats = FALSE, fonts = "ArialMT")
+  # Now perform predictions
+  x_full <- predict(normalization, my.total.matrix.num %>% dplyr::select(-c(response)))
+  x_train <- as.data.frame(x_full[train_ind,])
+  x_test <- as.data.frame(x_full[-train_ind,])
+  #c("knnImpute", "center", "scale"),
+  #normalization <- preProcess(my.total.matrix, method = c("center", "scale"), na.action = na.omit)
+  x_train <- x_train[,colSums(is.na(x_train))==0,]   #%>% select(-c(Site_ID))
+  x_test <- x_test[,colSums(is.na(x_test))==0,]
 
-heatmap.2(correlationMatrix, scale = "none", density.info="none", 
-          trace="none", dendrogram = "none", col = Colors)
+# Return data
+  return(list(x_full, x_train, x_test, train_ind))
+}
 
-dev.off()
-# summarize the correlation matrix
-# find attributes that are highly corrected (ideally >0.75)
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.50)
-
-
-#################################
-# Functions for feature selection and random forest
-#################################
 my_feat_selec <- function(x, y, subsets){
-  set.seed(16)
   # Create a control object to set the details of feature selection that will occur next
+  set.seed(16)
   ctrl = rfeControl(functions = rfFuncs,
                     #method = "metric",
                     repeats = 1,
                     saveDetails = TRUE,
                     verbose = TRUE)
-#I was getting a weird error with lmfuncs. Not clear if the problem was me or a bug. The following error was also found in this blog:https://community.rstudio.com/t/rfe-error-logistic-classification-undefined-columns-selected-and-match-requires-vector-arguments/23988
+  #I was getting a weird error with lmfuncs. Not clear if the problem was me or a bug. The following error was also found in this blog:https://community.rstudio.com/t/rfe-error-logistic-classification-undefined-columns-selected-and-match-requires-vector-arguments/23988
   prettySeq <- function(x) paste("Resample", gsub(" ", "0", format(seq(along = x))), sep = "")
   rfProfile <- rfe(x = x, y = y,
                    sizes = subsets,
                    rfeControl = ctrl, #rfeControl(functions = caretFuncs))
                    na.action = na.omit)
-
   my.predictors = predictors(rfProfile)[1:2]
-
-  
   trellis.par.set(caretTheme())
   plot(rfProfile, type = c("g", "o"))
   return(rfProfile)
 }
 
-# Subset predictors to those chosen in Step 1
 my_random_forest<-function(my.predictors, x, y,classification=TRUE){
+  # Subset predictors to those chosen in Step 1
   set.seed(116)
   if(classification==TRUE){
     metric="Accuracy"
@@ -144,12 +98,12 @@ my_random_forest<-function(my.predictors, x, y,classification=TRUE){
                           savePredictions = TRUE)
   
   rf.output <- caret::train(response~., 
-                            data = fin_predictors, 
-                            method="rf", 
-                            metric=metric, 
-                            trControl = control,
-                            verbose = TRUE,
-                            ntree = 50)
+                          data = fin_predictors, 
+                          method="rf", 
+                          metric=metric, 
+                          trControl = control,
+                          verbose = TRUE,
+                          ntree = 50)
   
   return(rf.output)
 }
@@ -177,32 +131,6 @@ my_pairwise_ROC<-function(my.predictors, x, y){
 }
   
   
-#################################
-# Step 3: Preprocess data
-#################################
-
-normalization <- preProcess(my.total.matrix.num %>% dplyr::select(-c(cluster,response)),
-                            method = c("center", "scale", "knnImpute"),
-                            na.remove = TRUE)
-
-smp_size <- floor(0.75 * nrow(my.total.matrix.num))
-set.seed(123)
-train_ind <- sample(seq_len(nrow(my.total.matrix.num)), size = smp_size)
-x_full <- predict(normalization, my.total.matrix.num %>% dplyr::select(-c(cluster,response)))
-x_train <- as.data.frame(x_full[train_ind,])
-x_test <- as.data.frame(x_full[-train_ind,])
-#c("knnImpute", "center", "scale"),
-#normalization <- preProcess(my.total.matrix, method = c("center", "scale"), na.action = na.omit)
-x_train <- x_train[,colSums(is.na(x_train))==0,]   #%>% select(-c(Site_ID))
-x_test <- x_test[,colSums(is.na(x_test))==0,]
-
-#################################
-# Step 4: Random forest on classification to cluster
-################################
-# Subset training and test response variable
-y = make.names(as.factor(my.total.matrix.num$cluster))
-y_train <- y[train_ind]
-y_test <- y[-train_ind]
 
 #Select features from full data
 subsets <- c(1:20,25, 30, 33)
@@ -218,6 +146,7 @@ rf_test.output<-predict(rf_train.output, newdata = x_test, type = "prob")
 importance <- varImp(rf_train.output$finalModel, scale=TRUE)
 import_class <- plot(importance)
 all_ROC = cbind(y_test, rf_test.output)
+
 y_test = addLevel(all_ROC$y_test, newlevel="X4")
 g1_3 = (roc(all_ROC, response = "y_test", levels = c("X1","X3"), predictor = "X1"))
 g3_1 = (roc(all_ROC, response = "y_test", levels = c("X1","X3"), predictor = "X3"))

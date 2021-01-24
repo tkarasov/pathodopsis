@@ -108,7 +108,7 @@ run_log<-function(per_site_object){
 }
 
 #########################################
-# Pathogen lables
+# Pathogen labels
 #########################################
 OTU5 <- c("seq_10")
 Xan <- "seq_49"
@@ -119,7 +119,6 @@ sphing <- "seq_1"
 # Load ITS and 16S data
 #########################################
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds")
-
 
 #########################################
 # Build data frame that has Capsella, Athalian and Soil per ASV
