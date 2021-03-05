@@ -28,7 +28,7 @@ $scripts/climate/general_spatial_dist.R
 # PCA on the subsetted microbiome and kmeans clustering into phylotypes
 $scripts/climate/kmeans_clustering.R
 
-# Kriging on the microbiome with OTU5
+# Kriging on the microbiome with OTU5 and 
 $scripts/climate/kriging_OTU5_map.R
 
 # Random forest on the microbiome
@@ -39,3 +39,7 @@ $scripts/plant_genotype/IBS.R
 
 # Plant health comparisons
 $scripts/plant_genotype/plant_health.R
+
+# Host genotype comparisons
+
+# Immune gene comparisons
