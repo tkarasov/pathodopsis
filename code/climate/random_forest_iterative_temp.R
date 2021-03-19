@@ -17,7 +17,7 @@ library(GENESIS)
 library(coxme)
 library(gaston)
 library(MuMIn)
-source("/ebio/abt6_projects9/pathodopsis_microbiomes/generic_random_forest.R")
+source("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/climate/generic_random_forest.R")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/color_pal.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rds")
 
@@ -127,19 +127,106 @@ dim(K)
 dat <- data.frame(MDS1=my.responseorig$MDS1, my.total.matrix.num, id = rownames(my.responseorig))
 
 #subet myresponses to those in K
-keep_rownames <- rownames(my.responseorig)[which(rownames(my.responseorig) %in% rownames(keep_K))]
+keep_rownames <- rownames(my.responseorig)[which(rownames(my.responseorig) %in% rownames(K))]
 keep_K <- K[keep_rownames, keep_rownames]
 keep_dat <- dat[which(rownames(my.responseorig) %in% rownames(keep_K)),]
+rownames(keep_dat) <- keep_dat$id
+# keep_dat <- scale(keep_dat)
 
-# provide the kinship matrix 
-gfit1 <- lmekin(MDS1 ~ PDSI + (1|id), data=keep_dat, varlist=keep_K)
+# write a quick function for predicted values from lmekin
+pred_val <- function(keep_K, gfit){
+  keep_K_red <- keep_K[names(gfit$coefficients$random$id), names(gfit$coefficients$random$id)]
+  keep_dat_red <- keep_dat[names(gfit$coefficients$random$id), names(gfit$coefficients$random$id)]
+  return(keep_K_red, keep_dat_red)
+}
+
+
+
+
+#only kinship
+gfit1 <- lmekin(MDS1 ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
+gfit1_pred <- keep_K %*% gfit1$coefficients$random$id
+resid <- keep_dat$MDS1 - gfit1_pred
+plot(gfit1_pred, resid)
 fixef(gfit1)
 ranef(gfit1) 
 r.squaredLR(gfit1)
-gfit2 <- lmekin(MDS1 ~ PDSI + (1|id), data=keep_dat)
-r.squaredLR(gfit2)
-gfit3 <- lmekin(MDS1 ~  (1|id), data=keep_dat, varlist=keep_K)
-r.squaredLR(gfit3)
+
+#kinship and drought
+gfit2 <- lmekin(MDS1 ~ (1|id) + scale(PDSI), data=keep_dat, method = "REML")
+red <- pred_val(keep_K, gfit2)
+fit2_pred <- keep_K[names(gfit2$coefficients$random$id), names(gfit2$coefficients$random$id)] %*% gfit2$coefficients$random$id + scale(keep_dat$PDSI) %*% gfit2$coefficients$fixed[2]
+resid <- keep_dat$MDS1 - gfit1_pred
+plot(gfit1_pred, resid)
+r.squaredLR(gfit2, null.RE = TRUE)
+
+#kinship and Lat
+gfit3 <- lmekin(MDS1 ~  (1|id) + scale(Lat), data=keep_dat, varlist=keep_K, method = "REML")
+r.squaredLR(gfit3, null.RE = TRUE)
+
+#kinship and Lat and Drought
+gfit4 <- lmekin(MDS1 ~  (1|id) + scale(Lat) + scale(PDSI), data=keep_dat, varlist=keep_K, method = "REML")
+r.squaredLR(gfit4, null.RE = TRUE)
+
+#################################
+# Plot residuals
+#################################
+
+
+
+###
+# openmx
+Sys.setenv(OMP_NUM_THREADS=32)
+library(OpenMx)
+
+#greml
+library(qgg)
+fitG <- greml(MDS1 ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
+
+#################################
+# ASV x ASV association with drought
+#################################
+asv_relation <- function(asv){
+  keep_otu <- plant_clim$otu_table[keep_dat$id,]
+  rownames(keep_otu) <- keep_dat$id
+  keep_otu <- keep_otu[keep_dat[which(keep_dat$Lat<45 & keep_dat$Lat>30),]$id,]
+  model1 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$Lat)
+  model2 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$PDSI)
+  model3 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$PDSI + keep_dat[rownames(keep_otu),]$Lat)
+  pval_lat <- summary(model1)$coefficients[2,4]
+  pval_pds <- summary(model2)$coefficients[2,4]
+  pval_lat_tog <- summary(model3)$coefficients[3,4]
+  pval_pds_tog <- summary(model3)$coefficients[2,4]
+  return(c(p.adjust(pval_lat, "BH"), p.adjust(pval_pds, "BH"), p.adjust(pval_lat_tog, "BH"), p.adjust(pval_pds_tog, "BH")))
+}
+N = length(colnames(plant_clim$otu_table))
+otu_sig <- data.frame(pval_lat = numeric(N), 
+    pval_pds = numeric(N),
+    pds_tog = numeric(N),
+    lat_tog = numeric(N),
+    lat_corr = numeric(N))
+rownames(otu_sig) = colnames(plant_clim$otu_table)
+
+for(asv in colnames(plant_clim$otu_table)){
+  print(asv)
+  pvals <- asv_relation(asv)
+  otu_sig[asv,c(1:4)] = pvals
+  otu_sig[asv, 5] = cor.test(as.numeric(keep_otu[,asv]),  keep_dat[rownames(keep_otu),]$Lat)$estimate
+}
+
+#what percentage are correlated with latitude? 
+lat_only <- length(which(otu_sig$pval_pds<0.01)) / dim(otu_sig)[1] #33%
+pdsI_lat_correct <- length(which(otu_sig$pds_tog<0.01)) / dim(otu_sig)[1] #10%
+
+#plot correlation of ASVs with latitude or PDSI
+keep_otu <- plant_clim$otu_table[keep_dat$id,]
+keep_otu_lat_pos <- keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr>0)]/1000
+keep_otu_lat_neg <- keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr<0)]/1000
+neg <- colnames(keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr<0)])
+pos <- colnames(keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr>0)])
+all_tax <- data.frame(plant_clim$tax_table)$Family
+pos_tax <- subset_taxa(plant_clim, pos)
+data.frame(plant_clim$tax_table)$Family[pos,]
 
 #################################
 # ROC curves for cluster assignment

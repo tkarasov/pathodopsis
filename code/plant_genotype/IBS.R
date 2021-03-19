@@ -68,6 +68,8 @@ Fst_plot <- ggplot(fst_1_3, aes(x=new_pos, y=WEIR_AND_COCKERHAM_FST, col = CHROM
   geom_vline(aes(xintercept = acd6 ),
              alpha = 0.5) +
   geom_text(aes(x=acd6, label="ACD6\n", y = 0.7), colour="blue", angle=90, text=element_text(size=11)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
   ylim(c(0,1)) 
 #facet_grid(~chr, scales = 'free_x', space = 'free_x', switch = 'x')
 
@@ -88,8 +90,8 @@ tracks(Fst_plot_on_acd6, gene_track, heights = c(0.7, 0.3))
 dev.off()
 
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
-Fst_plot
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 3.5, height = 4)
+Fst_plot + theme_bw()
 dev.off()
 
 

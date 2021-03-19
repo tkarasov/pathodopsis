@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-
+library(dplyr)
 library(vegan)
 library(SNPRelate)
 library(gdsfmt)
@@ -35,6 +35,65 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
 GPmine <- prune_taxa(colnames(otu_table(GP_at15_all)), phy_seq50_reorder)
 
 # #######################################################################
+# Do MDS on full otu_clim dataset
+# #######################################################################
+# First the plot for the MDS on the total dataset
+MDS.all <- (sqrt(OTU_clim$otu_table)) %>% dist() %>% cmdscale(eig = TRUE)
+exp1 <-  ((MDS.all$eig) / sum(MDS.all$eig))[1]*100
+exp2 <-  ((MDS.all$eig) / sum(MDS.all$eig))[2]*100
+
+colnames(MDS.all$points) = c("MDS1", "MDS2")
+col3 = OTU_clim$clim_data$Host_Species
+
+all_data_MDS <- ggplot(data = data.frame(MDS.all$points), aes(x=MDS1, y=MDS2)) + 
+  geom_point(aes(color = col3), cex = 1, alpha = 0.8) +
+  scale_color_viridis_d(labels = c(expression(italic("A. thaliana")), expression(italic("Capsella bursa-pastoris")), "Soil")) +
+  xlab(paste(paste("MDS1 (", round(exp1), sep=""),"%)",sep="")) +
+  ylab(paste(paste("MDS2 (", round(exp2), sep=""),"%)",sep="")) +
+  theme_bw() +
+  theme(legend.justification=c(0,0), 
+        legend.position=c(.7,.9),
+        legend.title = element_blank(),
+        legend.text.align = 0,
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        #legend.box.background = element_rect(colour = "black")
+  )
+        
+
+MDS.cap <- (sqrt(cap_clim$otu_table)) %>% dist() %>% cmdscale(eig = TRUE)
+col2 = cap_clim$clim_data$Host_Species
+exp3 <-  ((MDS.cap$eig) / sum(MDS.cap$eig))[1]*100
+exp4 <-  ((MDS.cap$eig) / sum(MDS.cap$eig))[2]*100
+colnames(MDS.cap$points) = c("MDS1", "MDS2")
+
+thaliana_cap_MDS <- ggplot(data = data.frame(MDS.cap$points), aes(x=MDS1, y=MDS2)) + 
+  geom_point(cex = 1, alpha = 0.8, aes(col = col2)) +
+  scale_color_manual(values = viridis_pal()(3)[c(1,2)], labels = c(expression(italic("A. thaliana")), expression(italic("Capsella bursa-pastoris")))) +
+  xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
+  ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
+  theme_bw() +
+  theme(legend.justification=c(0,0), 
+        legend.position=c(.7,.9),
+        legend.title = element_blank(),
+        legend.text.align = 0,
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        #legend.box.background = element_rect(colour = "black")
+  )
+
+legend <- get_legend(all_data_MDS) +
+  theme(legend.position = "bottom")
+
+all_capsella <- plot_grid(all_data_MDS + theme(legend.position = "none"), thaliana_cap_MDS + theme(legend.position = "none"))
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_cap_soil.pdf", useDingbats = FALSE, width = 3.5, height = 2)
+plot_grid(all_capsella, legend, ncol = 1, rel_heights = c(1,0.1))
+dev.off()
+
+
+# #######################################################################
 # For differential analysis use limma-voom
 # #######################################################################
 # https://ucdavis-bioinformatics-training.github.io/2017-September-Microbial-Community-Analysis-Workshop/friday/MCA_Workshop_R/phyloseq.html
@@ -51,6 +110,40 @@ if( !is.null(taxonomy) ){
 
 # Now turn into a DGEList
 d = DGEList(counts=t(m), genes=taxonomy, remove.zeros = TRUE)
+
+# Calculate the normalization factors
+z = calcNormFactors(d, method="RLE")
+
+# Check for division by zero inside `calcNormFactors`
+if( !all(is.finite(z$samples$norm.factors)) ){
+  stop("Something wrong with edgeR::calcNormFactors on this data,
+       non-finite $norm.factors, consider changing `method` argument")
+}
+
+#plotMDS(z, col = as.numeric(factor(sample_data(GP_at15_all)$Species)), labels = as.numeric(factor(sample_data(GP_at15_all)$Species)))
+
+# #######################################################################
+# Test difference between soil and not soil (A. thaliana)
+# #######################################################################
+# Creat a model based on Slash_pile_number and depth
+GP_mat <- data.frame(as(sample_data(GPmine), "matrix"))
+mm <- model.matrix(~ 0 + Host_Species + Tour_ID, data= GP_mat) # specify model with no intercept for easier contrasts
+
+# estimate dispersions
+# edgeR uses the Cox-Reid profile-adjusted
+# likelihood (CR) method in estimating dispersions [22]. The CR method is derived to overcome
+# the limitations of the qCML method as mentioned above. It takes care of multiple factors by
+# fitting generalized linear models (GLM) with a design matrix.
+
+# This function estimates a common negative binomial dispersion parameter
+dge <- estimateGLMCommonDisp(z, mm)
+
+# Estimate tagwise dispersion
+dge <- estimateGLMTagwiseDisp(dge, mm)
+
+# Estimates the abundance-dispersion trend by Cox-REid approximate profile likelihood
+dge <- estimateGLMTrendedDisp(dge, mm)
+
 
 # Calculate the normalization factors
 z = calcNormFactors(d, method="RLE")
@@ -116,9 +209,10 @@ plotMD(lrt_soil, status=is.de, values =c(1,-1), col=c("red","blue"),legend="topr
 tmp2 <- topTags(lrt_soil, n = 1000000)$table
 sigtab = cbind(as(tmp2, "data.frame"), as(tax_table(GPmine)[rownames(tmp2), ], "matrix"))
 theme_set(theme_bw())
-sigtabgen = subset(sigtab, !is.na(Genus))
+#sigtabgen = subset(sigtab, !is.na(Genus))
+sigtabgen = sigtab
 sigtabgen_soil <- sigtabgen
-
+#sigtabgen_soil <- subset(sigtabgen, !is.na(Genus))
 # # Phylum order
 # x = tapply(sigtabgen_soil$logFC, sigtabgen_soil$Phylum, function(x) max(x))
 # x = sort(x, TRUE)
@@ -142,9 +236,10 @@ sigtabgen_soil$sig <- sigtabgen_soil$FDR<0.01
 sigtabgen_soil$sig[sigtabgen_soil$sig==TRUE]= 1
 sigtabgen_soil$sig[sigtabgen_soil$sig==FALSE] = 0.25
 #sigtabgen_soil <- sigtabgen_soi %>% filter(FDR<=0.01)
+sigtabgen_soil2 <- subset(sigtabgen_soil, !is.na(Genus))
 
 diff_soil_non_soil <- 
-  ggplot(sigtabgen_soil, aes(x = Genus, y = logFC, color = Phylum)) + geom_point() + 
+  ggplot(sigtabgen_soil2, aes(x = Genus, y = logFC, color = Phylum)) + geom_point() + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d() + 
   theme(legend.position="bottom") +
   geom_hline(yintercept=0, linetype="dashed", color = "red")
@@ -185,13 +280,15 @@ tmp3 <- topTags(lrt, n = 1000000)$table
 sigtab = cbind(as(tmp3, "data.frame"), as(tax_table(GPmine)[rownames(tmp2), ], "matrix"))
 theme_set(theme_bw())
 
-sigtabgen = subset(sigtab, !is.na(Genus))
+sigtabgen = sigtab 
+# sigtabgen = subset(sigtab, !is.na(Genus))
 sigtabgen$Phylum = factor(as.character(sigtabgen$Phylum), levels = levels(sigtabgen_soil$Phylum))
 sigtabgen$coloring <- color_phylum_map[sigtabgen$Phylum]
 sigtabgen$sig <- sigtabgen$FDR<0.01
 sigtabgen$sig[sigtabgen$sig==TRUE]= 1
 sigtabgen$sig[sigtabgen$sig==FALSE] = 0.25
 #sigtabgen <- sigtabgen %>% filter(FDR<=0.01)
+sigtabgen = subset(sigtabgen, !is.na(Genus))
 
 diff_cap_ath <- ggplot(sigtabgen, aes(x = Genus, y = logFC, color = Phylum)) + geom_point(size=3, aes(alpha = sig)) + 
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d() + theme(legend.position="bottom") +
@@ -205,9 +302,10 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/diff_abundan
     useDingbats = FALSE, font = "ArialMT")
 
 plot_grid(diff_soil_non_soil + ylab("logFC(Plant/Soil)") +
-            theme(legend.position = "NULL"), 
+	  theme(legend.position = "NULL"), 
           diff_cap_ath + ylab("logFC(A. thaliana/Other Brassicaceae)") +
-          theme(legend.position = "NULL"), legend, rel_heights = c(1,1,.1), nrow = 3)
+          theme(legend.position = "NULL"), 
+  legend, rel_heights = c(1,1,.1), nrow = 3)
 dev.off()
 
 # # #######################################################################
@@ -297,42 +395,3 @@ dev.off()
 # #corfit <- duplicateCorrelation(vm, mm.random, block = plant_mat)
 # 
 # #And now we use the correlation within block
-# fit <- lmFit(vm.plant, mm.random) #m, block = data.frame(as(sample_data(GPmine),"matrix"))$SiteID, correlation=corfit$consensus)
-# 
-# # Comparison between cultivars A thaliana and Capsella with proper blocking
-# contr <- makeContrasts(SpeciesAth - SpeciesCap,
-#                        levels = colnames(coef(fit)))
-# 
-# tmp <- contrasts.fit(fit, contr)
-# tmp <- eBayes(tmp, robust = TRUE)
-# tmp2 <- topTable(tmp, coef=1, sort.by = "P", n = Inf)
-# tmp2$Taxa <- rownames(tmp2)
-# tmp2 <- tmp2[,c("Taxa","logFC","AveExpr","P.Value","adj.P.Val")]
-# length(which(tmp2$adj.P.Val < 0.01)) # number of DE genes
-# 
-# #tmp2 <- topTags(lrt, n = 1000000)$table
-# sigtab = cbind(as(tmp2, "data.frame"), as(tax_table(GPmine)[rownames(tmp2), ], "matrix"))
-# theme_set(theme_bw())
-# scale_fill_discrete <- function(palname = "Set1", ...) {
-#   scale_fill_brewer(palette = palname, ...)
-# }
-# sigtabgen = subset(sigtab, !is.na(Genus))
-# # Phylum order
-# x = tapply(sigtabgen$logFC, sigtabgen$Phylum, function(x) mean(x))
-# x = sort(x, TRUE)
-# sigtabgen$Phylum = factor(as.character(sigtabgen$Phylum), levels = names(x))
-# sigtabgen$Phylum <- factor(sigtabgen$Phylum, levels = phylum_levels)
-# #relevel(sigtabgen$Phylum) <- phylum_le
-# # Genus order
-# x = tapply(sigtabgen$logFC, sigtabgen$Genus, function(x) mean(x))
-# x = sort(x, TRUE)
-# sigtabgen$Genus = factor(as.character(sigtabgen$Genus), levels = names(x))
-# #sigtabgen <- sigtabgen %>% filter(FDR<=0.01)
-# 
-# diff_cap_ath_voom <- ggplot(sigtabgen, aes(x = Genus, y = logFC, color = Phylum)) + geom_point(size=3) + 
-#   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d()
-# 
-# 
-# 
-# 
-#
