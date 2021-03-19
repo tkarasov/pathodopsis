@@ -31,8 +31,11 @@ $scripts/climate/kmeans_clustering.R
 # Kriging on the microbiome with OTU5 and 
 $scripts/climate/kriging_OTU5_map.R
 
-# Random forest on the microbiome
-$scripts/climate/random_forest_iterative.R
+# Random forest on the microbiome of plants
+$scripts/climate/random_forest_iterative_temp.R
+
+# Random forest on the microbiome of soils
+$scripts/climate/random_forest_iterative_soil.R
 
 # Plant genotype comparisons to show differences in Fst of immune genes
 $scripts/plant_genotype/IBS.R
