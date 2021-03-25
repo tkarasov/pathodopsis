@@ -4,15 +4,21 @@
 #################################
 # Functions for feature selection and random forest
 #################################
-generate_my_total_matrix <- function(response_choice){
-  my.total.matrix <- cbind(plant_clim$clim_data, response = response_choice)#cbind(data_frame_predictors, "otu" = my.response1)
+generate_my_total_matrix <- function(response_choice, mat_clim){
+  my.total.matrix <- cbind(mat_clim$clim_data, response = response_choice)#cbind(data_frame_predictors, "otu" = my.response1)
   my.plantID <- my.total.matrix %>% dplyr::select(c(PDSI, Tour_ID, Plant_ID))
+
+  # There were some duplicate plants Let's remove from consideration
+  dup <- which(!duplicated(my.plantID[,3]))
+  my.total.matrix <- my.total.matrix[c(dup),]
+  my.plantID <- my.plantID[c(dup),]
+
   rownames(my.plantID) <-my.total.matrix$Plant_ID
   my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% dplyr::select (-c(Plant_ID, Sequence_ID, Site_ID))
   #################################
   # Step 2: Preprocess predictor data into dummy variables
   #################################
-  my.total.matrix[which(is.na(my.total.matrix$Land_cov)),]$Land_cov = "5000"
+  my.total.matrix$Land_cov <- replace_na(my.total.matrix$Land_cov, "5000")
   my.total.matrix[my.total.matrix=="n/a"]<-NA
   list_facs <- c("Lat", "Long", "Soil_temp", 
                "Soil_hum", "Humidity_ground.1", 
@@ -21,12 +27,12 @@ generate_my_total_matrix <- function(response_choice){
                                       function(x) as.numeric(as.character(x))) 
 
   #normalize the predictors and impute missing values. preProcess won't work with factors. 
-  my.total.matrix.num <- my.total.matrix %>% 
-  dplyr::select(-c(Albugo, Tour_ID, Necrosis, Strata_trees, Strata_shrubs, 
-            Strata_road, Strata_wall_tree, Strata_water, 
-            Date, Strata_wall_shrub, 
-            Site_Name, Site_name, Growing_on, 
-            Rosette_color, Ground_type, Heterogeneity, cluster, hc_cuttree2))
+  col_remove <- c("Albugo", "Tour_ID", "Necrosis", "Strata_trees", "Strata_shrubs", 
+            "Strata_road", "Strata_wall_tree", "Strata_water", 
+            "Date", "Strata_wall_shrub", "Land_cov", "Long", "Lat",
+            "Site_Name", "Site_name", "Growing_on", 
+            "Rosette_color", "Ground_type", "Heterogeneity", "cluster", "hc_cuttree2")
+  my.total.matrix.num <- my.total.matrix %>% dplyr::select(-one_of(col_remove))
 
   return(my.total.matrix.num)
 }
@@ -78,7 +84,7 @@ my_feat_selec <- function(x, y, subsets){
   return(rfProfile)
 }
 
-my_random_forest<-function(my.predictors, x, y,classification=TRUE){
+my_random_forest<-function(my.predictors, x, y, classification=TRUE){
   # Subset predictors to those chosen in Step 1
   set.seed(116)
   if(classification==TRUE){

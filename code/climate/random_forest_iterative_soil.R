@@ -4,6 +4,7 @@ library(caret)
 library(mlbench)
 library(Hmisc)
 library(dplyr)
+library(tidyr)
 #library(randomForest)
 devtools::install_git(url = 'https://github.com/tkarasov/taliaRgeneral.git')
 library(taliaRgeneral)
@@ -26,59 +27,33 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rd
 # Read in metadata Feb. 2020
 # #################################
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
+# #################################
+# Which are soil?
+# #################################
+soil <- which(OTU_clim$clim_data$Host_Species == "Soil")
+soil_clim <- OTU_clim
+soil_clim$clim_data <- OTU_clim$clim_data[soil,]
+soil_clim$otu_table <- OTU_clim$otu_table[soil,]
 
 #Perform MDS on otu_table
-my.responseorig <- data.frame(sqrt(plant_clim$otu_table)) %>% 
+my.responseorig <- data.frame(sqrt(soil_clim$otu_table)) %>% 
   dist() %>% cmdscale(eig = F) %>% data.frame()
 colnames(my.responseorig) = c("MDS1", "MDS2")
-col1 = plant_clim$clim_data$Tour_ID
+col1 = soil_clim$clim_data$Tour_ID
 
 #################################
 # Set response variable as MDS1 or as cluster
 #################################
 my.response1 <- my.responseorig$MDS1 #my.responseorig[,1][match(data_frame_predictors$Sequence_ID, rownames(my.responseorig))] 
-my.response2 <- make.names(as.factor(plant_clim$clim_data$cluster))
-my.response3 <- make.names(as.factor(plant_clim$clim_data$MDS2))
+my.response2 <- make.names(as.factor(soil_clim$clim_data$cluster))
+my.response3 <- make.names(as.factor(soil_clim$clim_data$MDS2))
 ##rownames(my.plantID) <-my.total.matrix$Plant_ID
 
 #################################
-# Random forest on cluster
+# Feature selection on mds1
 #################################
-my.total.matrix.num <- generate_my_total_matrix(response = my.response2, plant_clim)
-preprocess1 <- preprocess_data(my.total.matrix.num)
-x_full <- preprocess1[1][[1]]
-x_train <- preprocess1[2][[1]]
-x_test <- preprocess1[3][[1]]
-train_ind <- preprocess1[4][[1]]
-
-# Subset training and test response variable
-y = as.factor(my.total.matrix.num$response)
-y_train <- y[train_ind]
-y_test <- y[-train_ind]
-
-#Select features from full data
-subsets <- c(1:20,25, 30, 33)
-rfProfile_class = my_feat_selec(x_full, y, subsets)
-my.predictors = predictors(rfProfile_class)
-x_train = x_train[,my.predictors]
-x_test = x_test[,my.predictors]
-
-# Random Forest model (caret) on training data
-rf_train.output <-my_random_forest(my.predictors, x=x_train, y=y_train, classification = TRUE)
-rf_test.output<-predict(rf_train.output, newdata = x_test, type = "prob")
-
-importance <- varImp(rf_train.output$finalModel, scale=TRUE)
-import_class <- plot(importance)
-
-# 76% prediction accuracy. PDSI and vapor pressure, site type were the best predictors, mtry = 36
-
-
-#################################
-# Random forest on MDS1
-#################################
-my.total.matrix.num <- generate_my_total_matrix(response = my.response1, plant_clim)
+my.total.matrix.num <- generate_my_total_matrix(response = my.response1, soil_clim)
 preprocess1 <- preprocess_data(my.total.matrix.num)
 x_full <- preprocess1[1][[1]]
 x_train <- preprocess1[2][[1]]
@@ -92,23 +67,33 @@ y_test <- y[-train_ind]
 
 #Select features from full data
 subsets <- c(1:20,25, 30, 33)
-rfProfile_reg = my_feat_selec(x_full, y, subsets)
-my.predictors = predictors(rfProfile_reg)
+rfProfile_soil = my_feat_selec(x_full, y, subsets)
+my.predictors = predictors(rfProfile_soil)
 x_train = x_train[,my.predictors]
 x_test = x_test[,my.predictors]
 
 # Random Forest model (caret) on training data
 rf_train.output <-my_random_forest(my.predictors, x=x_train, y=y_train, classification = FALSE)
 rf_test.output<-predict(rf_train.output, newdata = x_test)
-importance <- varImp(rf_train.output$finalModel, scale=TRUE)
+
+importance_soil <- varImp(rf_train.output$finalModel, scale=TRUE)
 import_class <- plot(importance)
 
-#Rsquared = 0.58 with mtry = 49 and 45 predictor variables
+#Rsquared = 0.01 with mtry = 2 and 5 predictor variables
+# Most imortant was site type, Aspect, ppt, herbivory, and soil (what is soil)
 
 
-#################################
-# Random forest on MDS2
-#################################
+
+
+
+
+
+
+
+
+
+
+
 
 
 

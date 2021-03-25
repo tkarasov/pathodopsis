@@ -1,3 +1,6 @@
+# DEPRECATED SCRIPT
+
+
 # This function does feature selection using the caret and mbench packages then does random forest modeling
 # https://machinelearningmastery.com/feature-selection-with-the-caret-r-package/
 library(caret)
