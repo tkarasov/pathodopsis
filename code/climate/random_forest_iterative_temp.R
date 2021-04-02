@@ -2,6 +2,7 @@
 # https://machinelearningmastery.com/feature-selection-with-the-caret-r-package/
 library(caret)
 library(mlbench)
+library(tidyr)
 library(Hmisc)
 library(dplyr)
 #library(randomForest)
@@ -73,6 +74,25 @@ importance <- varImp(rf_train.output$finalModel, scale=TRUE)
 import_class <- plot(importance)
 
 # 76% prediction accuracy. PDSI and vapor pressure, site type were the best predictors, mtry = 36
+
+#################################
+# Random forest when removing correlated variables
+#################################
+nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
+correlationMatrix <- cor(my.total.matrix.num[,nums], use = "pairwise.complete.obs")
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.pdf",
+    useDingbats = FALSE, fonts = "ArialMT")
+
+heatmap.2(correlationMatrix, scale = "none", density.info="none", 
+          trace="none", dendrogram = "none", col = Colors)
+
+dev.off()
+
+# summarize the correlation matrix
+# find attributes that are highly corrected (ideally >0.75)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.75)
+
 
 
 #################################
@@ -369,7 +389,7 @@ heatmap.2(correlationMatrix, scale = "none", density.info="none",
 dev.off()
 # summarize the correlation matrix
 # find attributes that are highly corrected (ideally >0.75)
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.50)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.75)
 
 
 

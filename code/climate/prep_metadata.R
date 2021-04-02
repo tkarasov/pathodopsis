@@ -66,7 +66,7 @@ remove_PC <- to_exclude %>% filter(what_to_exclude == "PC")
 all_metadata <- all_metadata %>% filter(Tour_ID %ni% remove_all$TOUR_ID)
 all_metadata <- all_metadata %>% filter(Sequence_ID %ni% remove_PC$samples)
 
-write.table(all_metadata, "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_7_2020_reads.tsv", col.names=TRUE,  sep = "\t", quote=FALSE, row.names=FALSE)
+write.table(all_metadata, "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_9_2020_reads.tsv", col.names=TRUE,  sep = "\t", quote=FALSE, row.names=FALSE)
 
 save(all_metadata, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metadata.rds")
 
@@ -102,7 +102,7 @@ sample_data(phy_seq50_reorder) <- sample_data(GP50_all_metadata_reorder)
 save(phy_seq50_reorder, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/GP50_subset_fin.rds")
 
 #################################
-# Create S3 object
+# Create S3 object OTU_clim
 #################################
 
 OTU_clim <- list(otu_table = otu_table(phy_seq_reorder), 
@@ -112,3 +112,19 @@ OTU_clim <- list(otu_table = otu_table(phy_seq_reorder),
                  refseq = refseq(phy_seq_reorder))
 
 save(OTU_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
+
+
+#################################
+# Create S3 object plant_clim
+#################################
+
+plant_val = which(OTU_clim$clim_data$Host_Species=="Ath")
+
+plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,], 
+                   clim_data = OTU_clim$clim_data[plant_val,], 
+                   tax_table = OTU_clim$tax_table, 
+                   phy_tree = OTU_clim$phy_tree, 
+                   refseq = OTU_clim$refseq)
+
+save(plant_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
+

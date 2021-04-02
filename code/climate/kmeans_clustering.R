@@ -18,15 +18,15 @@ library(dendextend)
 #The goal of this script is to identify clusters in A. thaliana data. With this script we identified two major OTU clusters via kmeans clustering
 
 
-load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
-plant_val = which(OTU_clim$clim_data$Host_Species=="Ath")
+#plant_val = which(OTU_clim$clim_data$Host_Species=="Ath")
 
-plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,], 
-                   clim_data = OTU_clim$clim_data[plant_val,], 
-                   tax_table = OTU_clim$tax_table, 
-                   phy_tree = OTU_clim$phy_tree, 
-                   refseq = OTU_clim$refseq)
+# plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,],
+#                   clim_data = OTU_clim$clim_data[plant_val,],
+#                   tax_table = OTU_clim$tax_table,
+#                   phy_tree = OTU_clim$phy_tree,
+#                   refseq = OTU_clim$refseq)
 
 
 
