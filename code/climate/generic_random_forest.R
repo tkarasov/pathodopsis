@@ -14,14 +14,14 @@ generate_my_total_matrix <- function(response_choice, mat_clim){
   my.plantID <- my.plantID[c(dup),]
 
   rownames(my.plantID) <-my.total.matrix$Plant_ID
-  my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% dplyr::select (-c(Plant_ID, Sequence_ID, Site_ID))
+  my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% dplyr::select(-c(Plant_ID, Sequence_ID, Site_ID))
   #################################
   # Step 2: Preprocess predictor data into dummy variables
   #################################
   my.total.matrix$Land_cov <- replace_na(my.total.matrix$Land_cov, "5000")
   my.total.matrix[my.total.matrix=="n/a"]<-NA
   list_facs <- c("Lat", "Long", "Soil_temp", 
-               "Soil_hum", "Humidity_ground.1", 
+               "Soil_hum",  
                "Air_temp", "Air_hum", "R_diameter")
   my.total.matrix[,list_facs] <- lapply(my.total.matrix[, list_facs], 
                                       function(x) as.numeric(as.character(x))) 
@@ -30,7 +30,7 @@ generate_my_total_matrix <- function(response_choice, mat_clim){
   col_remove <- c("Albugo", "Tour_ID", "Necrosis", "Strata_trees", "Strata_shrubs", 
             "Strata_road", "Strata_wall_tree", "Strata_water", 
             "Date", "Strata_wall_shrub", "Land_cov", "Long", "Lat",
-            "Site_Name", "Site_name", "Growing_on", 
+             "Site_name", "Growing_on", "For", "Host_Species",
             "Rosette_color", "Ground_type", "Heterogeneity", "cluster", "hc_cuttree2")
   my.total.matrix.num <- my.total.matrix %>% dplyr::select(-one_of(col_remove))
 
@@ -80,7 +80,7 @@ my_feat_selec <- function(x, y, subsets){
                    na.action = na.omit)
   my.predictors = predictors(rfProfile)[1:2]
   trellis.par.set(caretTheme())
-  plot(rfProfile, type = c("g", "o"))
+ # plot(rfProfile, type = c("g", "o"))
   return(rfProfile)
 }
 
@@ -93,7 +93,7 @@ my_random_forest<-function(my.predictors, x, y, classification=TRUE){
   else{
     metric <- "RMSE"
   }
-  fin_predictors <- x %>% select(my.predictors)
+  fin_predictors <- x %>% dplyr::select(my.predictors)
   fin_predictors <- cbind(fin_predictors, response = y)
   
   control <- trainControl(method="repeatedcv", 
@@ -116,7 +116,7 @@ my_random_forest<-function(my.predictors, x, y, classification=TRUE){
 
 
 my_pairwise_ROC<-function(my.predictors, x, y){
-  fin_predictors <- x %>% select(my.predictors)  
+  fin_predictors <- x %>% dplyr::select(my.predictors)  
   df = list()
   for(level in levels(y)){
     ynew = as.numeric(y)

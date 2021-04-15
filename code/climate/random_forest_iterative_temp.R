@@ -18,6 +18,7 @@ library(GENESIS)
 library(coxme)
 library(gaston)
 library(MuMIn)
+library(pROC)
 source("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/climate/generic_random_forest.R")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/color_pal.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rds")
@@ -29,25 +30,27 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rd
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
-
 #Perform MDS on otu_table
-my.responseorig <- data.frame(sqrt(plant_clim$otu_table)) %>% 
+my.responseorig <- data.frame(sqrt(plant_clim$otu_table/1000)) %>% 
   dist() %>% cmdscale(eig = F) %>% data.frame()
 colnames(my.responseorig) = c("MDS1", "MDS2")
 col1 = plant_clim$clim_data$Tour_ID
+
+
+#Identify clusters
 
 #################################
 # Set response variable as MDS1 or as cluster
 #################################
 my.response1 <- my.responseorig$MDS1 #my.responseorig[,1][match(data_frame_predictors$Sequence_ID, rownames(my.responseorig))] 
 my.response2 <- make.names(as.factor(plant_clim$clim_data$cluster))
-my.response3 <- make.names(as.factor(plant_clim$clim_data$MDS2))
+my.response3 <- my.responseorig$MDS2
 ##rownames(my.plantID) <-my.total.matrix$Plant_ID
 
 #################################
 # Random forest on cluster
 #################################
-my.total.matrix.num <- generate_my_total_matrix(response = my.response2, plant_clim)
+my.total.matrix.num <- generate_my_total_matrix(my.response2, plant_clim)
 preprocess1 <- preprocess_data(my.total.matrix.num)
 x_full <- preprocess1[1][[1]]
 x_train <- preprocess1[2][[1]]
@@ -57,7 +60,7 @@ train_ind <- preprocess1[4][[1]]
 # Subset training and test response variable
 y = as.factor(my.total.matrix.num$response)
 y_train <- y[train_ind]
-y_test <- y[-train_ind]
+y_test_cluster <- y[-train_ind]
 
 #Select features from full data
 subsets <- c(1:20,25, 30, 33)
@@ -67,16 +70,55 @@ x_train = x_train[,my.predictors]
 x_test = x_test[,my.predictors]
 
 # Random Forest model (caret) on training data
-rf_train.output <-my_random_forest(my.predictors, x=x_train, y=y_train, classification = TRUE)
-rf_test.output<-predict(rf_train.output, newdata = x_test, type = "prob")
+rf_train.output_cluster <-my_random_forest(my.predictors, x=x_train, y=y_train, classification = TRUE)
+rf_test.output_cluster<-predict(rf_train.output_cluster, newdata = x_test, type = "prob")
 
-importance <- varImp(rf_train.output$finalModel, scale=TRUE)
+importance <- varImp(rf_train.output_cluster, scale = TRUE) #varImp(rf_train.output_cluster$finalModel, scale=TRUE)
 import_class <- plot(importance)
+import_1 <- importance$importance %>% filter(Overall > 1) %>% arrange(desc(Overall))
+import_2 <- data.frame(import_1[1:15,])
+rownames(import_2) <- rownames(import_1)[1:15]
+import_2$Variable <- rownames(import_2)
+colnames(import_2)[1] <- "Importance"
 
-# 76% prediction accuracy. PDSI and vapor pressure, site type were the best predictors, mtry = 36
+# plot relative importance
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/feature_importance.pdf",
+    useDingbats = FALSE, fonts = "ArialMT", width = 3.5, height = 2)
+importance <- ggplot(import_2, aes(x = reorder(Variable, Importance), 
+                        y = Importance)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  theme_classic() +
+  labs(
+    x     = "Feature",
+    y     = "Importance"
+    #title = "Feature Importance: <Model>"
+  )
+#dev.off()
+# 82% prediction accuracy. PDSI and vapor pressure, site type were the best predictors, mtry = 31
+
+PDSI_1 <- ggplot(data = my.total.matrix.num, aes(x = response, y = PDSI)) +
+  #geom_line() +
+  geom_boxplot(outlier.shape = NA, show.legend = FALSE, aes(color = response)) + 
+  scale_colour_manual(name = "Cluster", values = c('#d95f02', '#1b9e77')) +
+  geom_jitter(data = my.total.matrix.num, aes(x = response, y = PDSI, color = response), 
+              cex = 1, alpha = 0.5, width = 0.1, height = 0.1, show.legend = FALSE) +
+  theme_pubs +
+  xlab("") + 
+  ylab("PDSI")
+
+plot_grid(importance, PDSI_1)
+
+dev.off()
+#
+glm(plant_clim$clim_data$cluster ~ plant_clim$clim_data$PDSI + plant_clim$clim_data$Lat, family = "binomial")
+
+model1 <- lm(my.response1 ~ plant_clim$clim_data$PDSI + plant_clim$clim_data$Lat)
+model2 <- lm(my.response1 ~ plant_clim$clim_data$Lat)
 
 #################################
-# Random forest when removing correlated variables
+# Correlation between variables
 #################################
 nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
 correlationMatrix <- cor(my.total.matrix.num[,nums], use = "pairwise.complete.obs")
@@ -85,15 +127,13 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.
     useDingbats = FALSE, fonts = "ArialMT")
 
 heatmap.2(correlationMatrix, scale = "none", density.info="none", 
-          trace="none", dendrogram = "none", col = Colors)
+          trace="none", dendrogram = "none" )#, col = Colors)
 
 dev.off()
 
 # summarize the correlation matrix
 # find attributes that are highly corrected (ideally >0.75)
 highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.75)
-
-
 
 #################################
 # Random forest on MDS1
@@ -121,17 +161,34 @@ x_test = x_test[,my.predictors]
 rf_train.output <-my_random_forest(my.predictors, x=x_train, y=y_train, classification = FALSE)
 rf_test.output<-predict(rf_train.output, newdata = x_test)
 importance <- varImp(rf_train.output$finalModel, scale=TRUE)
+
 import_class <- plot(importance)
+import_1 <- importance$Overall %>% filter(Overall > .2) %>% arrange(desc(Overall))
+import_2 <- data.frame(import_1[1:15,])
+rownames(import_2) <- rownames(import_1)[1:15]
+import_2$Variable <- rownames(import_2)
+colnames(import_2)[1] <- "Importance"
+
+# plot relative importance
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/feature_importance.pdf",
+    useDingbats = FALSE, fonts = "ArialMT", width = 3.5, height = 3.5)
+importance <- ggplot(import_2, aes(x = reorder(Variable, Importance), 
+                                   y = Importance)) +
+  geom_bar(stat='identity') +
+  coord_flip() +
+  theme_classic() +
+  labs(
+    x     = "Feature",
+    y     = "Importance"
+    #title = "Feature Importance: <Model>"
+  )
+
+
+yup <- plant_clim$clim_data
+ggplot(aes(x = my.response1, y=my.response3, col = plant_clim$clim_data$cluster))
 
 #Rsquared = 0.58 with mtry = 49 and 45 predictor variables
-
-
-#################################
-# Random forest on MDS2
-#################################
-
-
-
 
 # #################################
 # Read in kinship matrix and perform mixed model regression with kinship matrix
@@ -150,7 +207,7 @@ dim(K)
 
 
 # need an ID variable
-dat <- data.frame(MDS1=my.responseorig$MDS1, my.total.matrix.num, id = rownames(my.responseorig))
+dat <- data.frame(MDS1=my.responseorig$MDS1, plant_clim$clim_data, id = rownames(my.responseorig))
 
 #subet myresponses to those in K
 keep_rownames <- rownames(my.responseorig)[which(rownames(my.responseorig) %in% rownames(K))]
@@ -166,9 +223,6 @@ pred_val <- function(keep_K, gfit){
   return(keep_K_red, keep_dat_red)
 }
 
-
-
-
 #only kinship
 gfit1 <- lmekin(MDS1 ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
 gfit1_pred <- keep_K %*% gfit1$coefficients$random$id
@@ -181,9 +235,9 @@ r.squaredLR(gfit1)
 #kinship and drought
 gfit2 <- lmekin(MDS1 ~ (1|id) + scale(PDSI), data=keep_dat, method = "REML")
 red <- pred_val(keep_K, gfit2)
-fit2_pred <- keep_K[names(gfit2$coefficients$random$id), names(gfit2$coefficients$random$id)] %*% gfit2$coefficients$random$id + scale(keep_dat$PDSI) %*% gfit2$coefficients$fixed[2]
-resid <- keep_dat$MDS1 - gfit1_pred
-plot(gfit1_pred, resid)
+gfit2_pred <- keep_K[names(gfit2$coefficients$random$id), names(gfit2$coefficients$random$id)] %*% gfit2$coefficients$random$id + scale(keep_dat[names(gfit2$coefficients$random$id),]$PDSI) %*% gfit2$coefficients$fixed[2]
+resid <- keep_dat[names(gfit2$coefficients$random$id),]$MDS1 - gfit2_pred
+plot(gfit2_pred, resid, pch = 20)
 r.squaredLR(gfit2, null.RE = TRUE)
 
 #kinship and Lat
@@ -199,27 +253,29 @@ r.squaredLR(gfit4, null.RE = TRUE)
 #################################
 
 
-
-###
-# openmx
-Sys.setenv(OMP_NUM_THREADS=32)
-library(OpenMx)
-
-#greml
-library(qgg)
-fitG <- greml(MDS1 ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
-
-#################################
+# 
+# ###
+# # openmx
+# Sys.setenv(OMP_NUM_THREADS=32)
+# library(OpenMx)
+# 
+# #greml
+# library(qgg)
+# fitG <- greml(MDS1 ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
+# 
+# #################################
 # ASV x ASV association with drought
 #################################
 asv_relation <- function(asv){
-  keep_otu <- plant_clim$otu_table[keep_dat$id,]
+  #keep_otu <- plant_clim$otu_table[keep_dat$id,]
   rownames(keep_otu) <- keep_dat$id
-  keep_otu <- keep_otu[keep_dat[which(keep_dat$Lat<45 & keep_dat$Lat>30),]$id,]
-  model1 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$Lat)
-  model2 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$PDSI)
-  model3 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$PDSI + keep_dat[rownames(keep_otu),]$Lat)
+  #keep_otu <- keep_otu[keep_dat[which(keep_dat$Lat<45 & keep_dat$Lat>30),]$id,]
+  #keep_otu <- keep_otu[keep_dat$id,]
+  model1 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat$Lat)
+  model2 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat$PDSI)
+  model3 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat$PDSI + keep_dat$Lat)
   pval_lat <- summary(model1)$coefficients[2,4]
+  print("poo")
   pval_pds <- summary(model2)$coefficients[2,4]
   pval_lat_tog <- summary(model3)$coefficients[3,4]
   pval_pds_tog <- summary(model3)$coefficients[2,4]
@@ -233,6 +289,12 @@ otu_sig <- data.frame(pval_lat = numeric(N),
     lat_corr = numeric(N))
 rownames(otu_sig) = colnames(plant_clim$otu_table)
 
+
+
+keep_dat <- dat[which(rownames(my.responseorig) %in% rownames(keep_K)),]
+rownames(keep_dat) <- keep_dat$id
+keep_otu <- plant_clim$otu_table[keep_dat$id,]
+
 for(asv in colnames(plant_clim$otu_table)){
   print(asv)
   pvals <- asv_relation(asv)
@@ -245,26 +307,26 @@ lat_only <- length(which(otu_sig$pval_pds<0.01)) / dim(otu_sig)[1] #33%
 pdsI_lat_correct <- length(which(otu_sig$pds_tog<0.01)) / dim(otu_sig)[1] #10%
 
 #plot correlation of ASVs with latitude or PDSI
-keep_otu <- plant_clim$otu_table[keep_dat$id,]
+
 keep_otu_lat_pos <- keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr>0)]/1000
 keep_otu_lat_neg <- keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr<0)]/1000
 neg <- colnames(keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr<0)])
 pos <- colnames(keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr>0)])
 all_tax <- data.frame(plant_clim$tax_table)$Family
 pos_tax <- subset_taxa(plant_clim, pos)
-data.frame(plant_clim$tax_table)$Family[pos,]
+#data.frame(plant_clim$tax_table)$Family[pos,]
 
 #################################
 # ROC curves for cluster assignment
 #################################
-all_ROC = cbind(y_test, rf_test.output)
+all_ROC = cbind(y_test_cluster, rf_test.output_cluster)
 y_test = addLevel(all_ROC$y_test, newlevel="X4")
-g1_3 = (roc(all_ROC, response = "y_test", levels = c("X1","X3"), predictor = "X1"))
-g3_1 = (roc(all_ROC, response = "y_test", levels = c("X1","X3"), predictor = "X3"))
+#g1_3 = (roc(all_ROC, response = "y_test", levels = c("X1","X3"), predictor = "X1"))
+#g3_1 = (roc(all_ROC, response = "y_test", levels = c("X1","X3"), predictor = "X3"))
 g1_2 = (roc(all_ROC, response = "y_test", levels = c("X1","X2"), predictor = "X1"))
 g2_1 = (roc(all_ROC, response = "y_test", levels = c("X1","X2"), predictor = "X2"))
-g2_3 = (roc(all_ROC, response = "y_test", levels = c("X2","X3"), predictor = "X2")) 
-g3_2 = (roc(all_ROC, response = "y_test", levels = c("X2","X3"), predictor = "X3")) 
+#g2_3 = (roc(all_ROC, response = "y_test", levels = c("X2","X3"), predictor = "X2")) 
+#g3_2 = (roc(all_ROC, response = "y_test", levels = c("X2","X3"), predictor = "X3")) 
 
 full_comp <- ggroc(list("Class1vs2" = g1_2, "Class2vs1" = g2_1, 
                         "Class2vs3" = g2_3, "Class3vs2" = g3_2,
@@ -302,8 +364,8 @@ auc(g2_3)
 #################################
 # logistic regression of 1 vs 3
 tog <- data.frame(my.total.matrix)
-test_tog <- tog[-train_ind,] %>% filter(cluster%in%c("1", "3"))
-train_tog <- tog[train_ind,] %>% filter(cluster%in%c("1", "3"))
+test_tog <- tog[-train_ind,] %>% filter(cluster%in%c("1", "2"))
+train_tog <- tog[train_ind,] %>% filter(cluster%in%c("1", "2"))
 tog <- tog %>% filter(cluster%in%c("1", "3"))
 tog$recode = c(0)
 tog[tog$cluster=="1",]$recode = 0
@@ -347,72 +409,73 @@ ggroc(list("Random Forest" = g1_3, "Full logit" = logit_roc, "logit Latitude Onl
 dev.off()
 
 
-PDSI_1 <- ggplot(data = newdat, aes(x=PDSI, y = vs)) +
-  geom_line() +
-  geom_jitter(data = tog, aes(x = PDSI, y = recode), cex = 2, alpha = 0.5, width = 0.01, height = 0.1) +
-  theme_pubs +
-  xlab("PDSI") + 
-  ylab("Class 1 vs Class 3")
-
-PDSI_2 <- ggplot(data = tog, aes(x = as.factor(recode), y = PDSI)) +
-  geom_boxplot() +
-  geom_jitter(width = 0.1, alpha = 0.5) +
-  xlab(c("Class")) +
-  theme_pubs
-
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/PDSI_class.pdf", 
-    useDingbats = FALSE, fonts = "ArialMT")
-plot_grid(PDSI_1, PDSI_2)
-dev.off()
-
-#################################
-# Step 5: Random forest across OTUs
-################################
-
-
-
-
-
-#################################
-# calculate correlation matrix. Only possible with numeric predictors
-#################################
-
-nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
-correlationMatrix <- cor(my.total.matrix.num[,nums], use = "pairwise.complete.obs")
-
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.pdf",
-    useDingbats = FALSE, fonts = "ArialMT")
-
-heatmap.2(correlationMatrix, scale = "none", density.info="none", 
-          trace="none", dendrogram = "none", col = Colors)
-
-dev.off()
-# summarize the correlation matrix
-# find attributes that are highly corrected (ideally >0.75)
-highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.75)
-
-
-
-
-
-
-
-
-# combine all data sets
-
-col1 = x$Tour_ID#as.factor(sample_data(only_ath)$Clim)
-col2 = fin_predictors$PDSI
-
-p1 <- ggplot(data = my.responseorig, aes(x=MDS1, y=MDS2)) + 
-  geom_point(aes(color = col1), cex = 3) +
-  scale_color_viridis_d() +
-  theme_bw()
-
-p2 <- ggplot(data = my.responseorig, aes(x=MDS1, y=MDS2)) + 
-  geom_point(aes(color = col2), cex = 3) +
-  scale_colour_gradient2() +
-  theme_bw()
-
-
-plot_grid(import_MDS1, p2)
+# PDSI_1 <- ggplot(data = newdat, aes(x=PDSI, y = vs)) +
+#   geom_line() +
+#   geom_jitter(data = tog, aes(x = PDSI, y = recode), cex = 1, alpha = 0.5, width = 0.01, height = 0.1) +
+#   theme_pubs +
+#   xlab("PDSI") + 
+#   ylab("Cluster 1 vs Class 2")
+# 
+# PDSI_2 <- ggplot(data = tog, aes(x = as.factor(recode), y = PDSI)) +
+#   geom_boxplot() +
+#   geom_jitter(width = 0.1, alpha = 0.5) +
+#   xlab(c("Class")) +
+#   theme_pubs
+# 
+# pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/PDSI_class.pdf", 
+#     useDingbats = FALSE, fonts = "ArialMT", width = 1.75, height = 1.75)
+# #plot_grid(PDSI_1, PDSI_2)
+# plot(PDSI_1)
+# dev.off()
+# 
+# #################################
+# # Step 5: Random forest across OTUs
+# ################################
+# 
+# 
+# 
+# 
+# 
+# #################################
+# # calculate correlation matrix. Only possible with numeric predictors
+# #################################
+# 
+# nums <- unlist(lapply(my.total.matrix.num, is.numeric))  
+# correlationMatrix <- cor(my.total.matrix.num[,nums], use = "pairwise.complete.obs")
+# 
+# pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/env_heatmap.pdf",
+#     useDingbats = FALSE, fonts = "ArialMT")
+# 
+# heatmap.2(correlationMatrix, scale = "none", density.info="none", 
+#           trace="none", dendrogram = "none", col = Colors)
+# 
+# dev.off()
+# # summarize the correlation matrix
+# # find attributes that are highly corrected (ideally >0.75)
+# highlyCorrelated <- findCorrelation(correlationMatrix, cutoff = 0.75)
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# # combine all data sets
+# 
+# col1 = x$Tour_ID#as.factor(sample_data(only_ath)$Clim)
+# col2 = fin_predictors$PDSI
+# 
+# p1 <- ggplot(data = my.responseorig, aes(x=MDS1, y=MDS2)) + 
+#   geom_point(aes(color = col1), cex = 3) +
+#   scale_color_viridis_d() +
+#   theme_bw()
+# 
+# p2 <- ggplot(data = my.responseorig, aes(x=MDS1, y=MDS2)) + 
+#   geom_point(aes(color = col2), cex = 3) +
+#   scale_colour_gradient2() +
+#   theme_bw()
+# 
+# 
+# plot_grid(import_MDS1, p2)
 

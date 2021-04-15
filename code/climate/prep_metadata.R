@@ -31,7 +31,7 @@ factor_var = c("Albugo", "Necrosis", "Land_cov")
 all_metadata[,factor_var] <- apply(all_metadata[,factor_var], 2, as.factor)
 
 #remove weird columns
-all_metadata <- all_metadata %>% select(-c("Time", "Humidity_ground.1", "Sun.1", "Slope.1"))
+all_metadata <- all_metadata %>% select(-c("Time", "Humidity_ground.1", "Sun.1", "Slope.1", "Site_Name"))
 
 #combine columns over averages
 many <- c("tmax", "tmin", "vap", "ppt", "srad", "soil", "ws", "aet", "def", "PDSI", "vpd", "pet")
@@ -62,6 +62,10 @@ all_metadata$Lat <- as.numeric(as.character(all_metadata$Lat))
 to_exclude <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/exclusion_notes.tsv.txt", sep="\t", header = TRUE)
 
 remove_all <- to_exclude %>% filter(samples=="all")
+
+# Two samples had repeatedly weird input problems: PA1336.P207 and PA1339.P207 so were excluded and PA1408, PA1410 were amended because of problems
+all_metadata <- all_metadata %>% filter(Sequence_ID %ni% c("PA1336.P207.IRE", "PA1339.P207.IRE"))
+
 remove_PC <- to_exclude %>% filter(what_to_exclude == "PC")
 all_metadata <- all_metadata %>% filter(Tour_ID %ni% remove_all$TOUR_ID)
 all_metadata <- all_metadata %>% filter(Sequence_ID %ni% remove_PC$samples)

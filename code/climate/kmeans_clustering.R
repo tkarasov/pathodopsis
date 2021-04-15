@@ -20,19 +20,7 @@ library(dendextend)
 
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
-#plant_val = which(OTU_clim$clim_data$Host_Species=="Ath")
-
-# plant_clim <- list(otu_table = OTU_clim$otu_table[plant_val,],
-#                   clim_data = OTU_clim$clim_data[plant_val,],
-#                   tax_table = OTU_clim$tax_table,
-#                   phy_tree = OTU_clim$phy_tree,
-#                   refseq = OTU_clim$refseq)
-
-
-
 #Website is amazing for options for determining the number of clusters: https://stackoverflow.com/questions/15376075/cluster-analysis-in-r-determine-the-optimal-number-of-clusters
-
-
 
 ######################
 # How many ASVs to consider (to reduce complexity). Consider as many as constitute an average of 50% of microbiome
@@ -67,16 +55,15 @@ for(i in 1:length(dist_vector)){
 #subset the otu_table to the ASVs that constitute 50%
 #plant_clim$otu_table <- plant_clim$otu_table[,colnames(p_order)[1:i]]
 
-
 ######################
 # What is the optimal number of clusters?
 ######################
 set.seed(16)
 
-otu_scale <- plant_clim$otu_table
+otu_scale1 <- plant_clim$otu_table
 
 #now we do a hellinger transformation of the scaled data
-otu_scale <- sqrt(otu_scale/1000)
+otu_scale <- sqrt(otu_scale1/1000)
 
 ######################
 # Elbow plot (does not coverge)
@@ -89,10 +76,10 @@ plot(1:50, wss, type="b", xlab="Number of Clusters",
      ylab="Within groups sum of squares")
 
 ######################
-# Silhouette says three clusters
+# Silhouette says two clusters
 ######################
 
-#Silouette: 3 clusters
+#Silouette: 2 clusters
 pamk.best <- pamk(otu_scale)
 my.pam <- pam(data.frame((otu_scale)), pamk.best$nc)
 #For some reason the following throws an error
@@ -115,23 +102,28 @@ cat("silhouette-optimal number of clusters:", pamkzk.best, "\n")
 
 
 ######################
-# So let's do k-means clustering with three clsuters
+# So let's do k-means clustering with two clsuters
 ######################
 # nc <- NbClust(otu_scale, diss=NULL, distance = "euclidean", min.nc=2, max.nc=6, 
 #       method = "kmeans", index = "silhouette")
 # fviz_nbclust(otu_scale, kmeans, method = c("silhouette", "wss",
-#                                           "gap_stat"))
-clusters <- kmeans(otu_scale, 3)
+#    "gap_stat"))
+
+
+set.seed(16)
+clusters <- kmeans(otu_scale, 2, nstart = 100)
 
 plant_clim$clim_data$cluster <- clusters$cluster
+save(plant_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 
-# and now look at the silhouette score for the three clusters
+# and now look at the silhouette score for the two clusters
 dis = dist(otu_scale)^2 # k-means clustering uses squared euclidean distances
 sil = silhouette(clusters$cluster, dis)
-pdf("//ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/silhouette_scored.pdf",
+pdf("//ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/silhouette_scored_poo2.pdf",
     useDingbats = FALSE, font = "ArialMT", width = 7, height  = 6)
 plot(sil) 
 dev.off()
+
 ######################
 # How about hierarchical clustering
 ######################
@@ -162,13 +154,13 @@ ggplot(dend, labels = FALSE)
 # h.cut <- hcut((otu_scale), k = 2, hc_method = "complete")
 # fviz_silhouette(h.cut)
 # fviz_cluster(h.cut)
-save(plant_clim, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
+
 
 ######################
 # And Let's plot the MDS with the clusters
 ######################
 
-MDS <- sqrt(plant_clim$otu_table) %>% dist() %>% cmdscale(eig = TRUE,  k = (dim(plant_clim$otu_table)[1]-1))
+MDS <- sqrt(plant_clim$otu_table/1000) %>% dist() %>% cmdscale(eig = TRUE,  k = (dim(plant_clim$otu_table)[1]-1))
 MDS.points <- data.frame(MDS$points)
 colnames(MDS.points)[c(1:2)] = c("MDS1", "MDS2")
 exp3 <-  ((MDS$eig) / sum(MDS$eig))[1]*100
@@ -177,7 +169,7 @@ exp4 <-  ((MDS$eig) / sum(MDS$eig))[2]*100
 MDS_plot_kmeans <- 
   ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
   geom_point(aes(col=as.factor(clusters$cluster)), cex = 3, alpha = 0.5) +
-  scale_colour_brewer(name = "Cluster", palette = "Dark2") +
+  scale_colour_manual(name = "Cluster", values = c('#d95f02', '#1b9e77')) +
   theme_bw() +
   xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
   ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
@@ -194,8 +186,8 @@ MDS_plot_kmeans <-
 
 MDS_plot_hclust <- 
   ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
-  geom_point(aes(col=as.factor(cl_members)), cex = 3, alpha = 0.5) +
-  scale_colour_brewer(name = "Cluster", palette = "Dark2") +
+  geom_point(aes(col=as.factor(cl_members)), cex = 2.5, alpha = 0.5) +
+  scale_colour_brewer(name = "Cluster", palette = c('#d95f02', '#1b9e77')) +
   theme_bw() +
   xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
   ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
@@ -216,7 +208,8 @@ MDS_plot_hclust <-
 my.transform <- "+proj=longlat +datum=WGS84 +no_defs"
 laea <- "+init=epsg:3857" 
 
-myvar_tab = data.frame(myvar = clusters$cluster, myvar2 = cl_members, Longitude =  as.numeric(as.character(plant_clim$clim_data$Long)), Latitude = as.numeric(as.character(plant_clim$clim_data$Lat)))
+myvar_tab = data.frame(myvar = clusters$cluster, myvar2 = cl_members, Longitude =  as.numeric(as.character(plant_clim$clim_data$Long)), 
+                       Latitude = as.numeric(as.character(plant_clim$clim_data$Lat)))
 myvar_tab = myvar_tab[complete.cases(myvar_tab),]
 
 # Percentage of individuals that have myvar:
@@ -246,7 +239,6 @@ europe.sf = st_as_sf(europe)
 ####################################################################################
 
 #I'm going to use the function krige from gstat
-
 #I need to create a grid of points I would like to predict the values for.
 lon <- seq(extent(my.sp)[1] - 5, extent(my.sp)[2] + 5, length.out = 500)
 lat <- seq(extent(my.sp)[3] -5, extent(my.sp)[4] + 5, length.out = 500)
@@ -260,21 +252,12 @@ sp.laea <- spTransform(my.sp, CRS(laea))
 europe.laea <-spTransform(europe, CRS(laea))
 grd.laea <- spTransform(grd_sp, CRS(laea))
 kriging_result = autoKrige(formula = myvar~1, input_data = sp.laea, new_data = grd.laea)
-
-#kriging_result1 = autoKrige(formula = myvar~1, input_data = sp.laea, new_data = europe.laea)
 Krig = kriging_result$krige_output
 
 # take only the points falling in polygons. This is the step where we limit the infomration
 Krig = kriging_result$krige_output[!is.na(over(kriging_result$krige_output,as(europe.laea,"SpatialPolygons"))),]  
 Krig.fin = spTransform(Krig, my.transform)
 Krig_df = as.data.frame(Krig.fin)
-# names(Krig_df) = c(  "APPT_pred","APPT_var","APPT_stdev", "longitude","latitude")
-# my.df = as.data.frame(my.sp)
-# 
-# #Make a dataframe of Kriging in which the poorly interpolated points are just white
-# the_mode = getmode(kriging_result$krige_output@data$var1.pred)
-# Krig.fin = kriging_result
-# Krig.fin$krige_output@data$var1.pred[which(Krig.fin$krige_output@data$var1.pred==the_mode)] = NA
 
 ####################################################################################
 # Plot world map with data points
@@ -316,7 +299,7 @@ myvar_point_kmeans <-base_europe_df +
   geom_jitter(data = my.df, 
               aes(coords.x1, coords.x2, colour = as.factor(myvar)), 
               width = .5, cex = 1.5, alpha = 0.5) +
-  scale_colour_brewer(name = "Cluster", palette = "Dark2") +
+  scale_colour_manual(name = "Cluster", values = c('#d95f02', '#1b9e77')) +
   scale_y_continuous(expand = c(0,0), limits = c(ymin_plot, ymax_plot)) +
   scale_x_continuous(expand = c(0,0), limits = c(xmin_plot, xmax_plot)) +
   theme_opts + 
@@ -343,11 +326,11 @@ kmeans.p <- plot_grid(MDS_plot_kmeans + theme(legend.position = "none"),
 hclust.p <- plot_grid(MDS_plot_hclust + theme(legend.position = "none"), 
                     myvar_point_hclust + theme(legend.position = "none"))
 
-cluster_plot <- plot_grid(kmeans.p, hclust.p, labels = c("k-means", "hclust")
-, nrow = 2)
+cluster_plot <- kmeans.p #plot_grid(kmeans.p, hclust.p, labels = c("k-means", "hclust")
+# , nrow = 2)
                           
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/map_clusters.pdf", useDingbats = FALSE, font = "ArialMT", width = 7, height  = 6)
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/map_clusters_poo.pdf", useDingbats = FALSE, font = "ArialMT", width = 7, height  = 3)
 
 cluster_plot
 
