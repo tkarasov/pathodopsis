@@ -46,10 +46,10 @@ bcftools view \
 # Perform fst analysis
 ############################################################
 vcftools --gzvcf poolsGVCF_lowCov.filtered_snps_final.PASS.bi.vcf.gz \
-	--weir-fst-pop cluster1.pop --weir-fst-pop cluster3.pop --out fst_1_3
+	--weir-fst-pop cluster1x.pop --weir-fst-pop cluster2x.pop --out fst_1_2
 
 vcftools --vcf poolGVCF_gander2.vcf \
-	--weir-fst-pop cluster1.pop --weir-fst-pop cluster3.pop --out poolGVCF_gander_fst_1_3
+	--weir-fst-pop cluster1x.pop --weir-fst-pop cluster2x.pop --out poolGVCF_gander_fst_1_2
 
 ############################################################
 # Convert acd6 to tped and tfam
@@ -164,7 +164,7 @@ sed -i 's/.bam//g' my_acd6_calls.vcf
 
 #now calculate fst
 vcftools --vcf my_acd6_calls.vcf \
-	--weir-fst-pop ../cluster1.pop --weir-fst-pop ../cluster3.pop --out fst_my_acd6
+	--weir-fst-pop ../cluster1x.pop --weir-fst-pop ../cluster3x.pop --out fst_my_acd6
 
 #vcf2bed < my_acd6_calls.vcf > out.bed
 

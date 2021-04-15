@@ -17,7 +17,9 @@ library(ggplot2)
 library(viridis)
 library(Gviz)
 library(GenomicRanges)
+library(GenomicFeatures)
 library(rtracklayer)
+library(ggbio)
 library(pegas)
 library(sf)
 library(rnaturalearth)
@@ -50,8 +52,10 @@ genemodels = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/A
 #######################################################################
 fst_1_3 <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander_fst_1_3.weir.fst",
                       header = T)
-fst_1_3_all<-read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_3.weir.fst",
+fst_1_3 <- unique(fst_1_3)
+fst_1_3_all<-read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_2.weir.fst",
                         header = T)
+fst_1_3_all <- unique(fst_1_3_all)
 fst_1_3$new_pos <- c(1:dim(fst_1_3)[1])
 
 acd6 <- fst_1_3[which(fst_1_3$WEIR_AND_COCKERHAM_FST==max(fst_1_3$WEIR_AND_COCKERHAM_FST, na.rm =TRUE)),]$new_pos[1]
@@ -60,10 +64,12 @@ acd6 <- fst_1_3[which(fst_1_3$WEIR_AND_COCKERHAM_FST==max(fst_1_3$WEIR_AND_COCKE
 Fst_plot <- ggplot(fst_1_3, aes(x=new_pos, y=WEIR_AND_COCKERHAM_FST, col = CHROM)) + 
   geom_point() + 
   #facet_grid(rows = vars(chr), scales = "free_x", switch = "x") +
-  theme_bw() +
+  theme_classic() +
   #geom_hline(aes(yintercept = fst99), lty = "dashed") +
   scale_color_viridis_d() +
-  xlab("Position") +
+  theme(legend.position = "none", axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())  +
   ylab("Fst") +
   geom_vline(aes(xintercept = acd6 ),
              alpha = 0.5) +
@@ -74,12 +80,17 @@ Fst_plot <- ggplot(fst_1_3, aes(x=new_pos, y=WEIR_AND_COCKERHAM_FST, col = CHROM
 #facet_grid(~chr, scales = 'free_x', space = 'free_x', switch = 'x')
 
 fst_1_3_acd6 <- fst_1_3_all %>% filter(CHROM=="chr4") %>% filter(POS>8283409 & POS<8300000)
+
+#top snps
+top <- fst_1_3 %>% arrange(desc(WEIR_AND_COCKERHAM_FST))
+
+
 txdb <- makeTxDbFromGFF(file="/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/TAIR10_GFF3_genes.gff", format="gff3")
 gene_track <- autoplot(txdb, which=GRanges("Chr4", IRanges(8283409, 8300000)), names.expr = "gene_id")+ theme_bw()
 
 Fst_plot_on_acd6 <- ggplot(fst_1_3_acd6, aes(x=as.numeric(as.character(POS)), y=WEIR_AND_COCKERHAM_FST, col = CHROM)) + 
   geom_point() + 
-  theme_bw() +
+  theme_classic() +
   scale_color_viridis_d() +
   xlab("Position") +
   ylab("Fst") +
@@ -91,7 +102,7 @@ dev.off()
 
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf", useDingbats = FALSE, font = "ArialMT", width  = 3.5, height = 4)
-Fst_plot + theme_bw()
+Fst_plot 
 dev.off()
 
 
