@@ -31,6 +31,12 @@ $scripts/climate/kmeans_clustering.R
 # Kriging on the microbiome with OTU5 and 
 $scripts/climate/kriging_OTU5_map.R
 
+# Metagenome and pathogen comparisons
+$scripts/climate/metagenome_abundance.R
+
+# Latitude and ASV comparisons
+$scripts/climate/metagenome_abundance.R
+
 # Random forest on the microbiome of plants
 $scripts/climate/random_forest_iterative_temp.R
 
