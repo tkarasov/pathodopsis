@@ -28,6 +28,7 @@ library(automap)
 library(devtools)
 library(dplyr)
 library(phyloseq)
+library(reshape2)
 
 theme_opts<-list(theme(panel.grid.minor = element_blank(),
                        panel.grid.major = element_blank(),
@@ -64,7 +65,7 @@ getmode <- function(v) {
 ####################
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
-load('/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000.rds')
+load('/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000_at15.rds')
 my_bac <- read.csv(
   "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/metagenome/combine_runs/meta_family_corrected_per_plant_v2_bacteria.csv",
   header = TRUE, row.names = 1)
@@ -78,15 +79,17 @@ my_fungi = read.csv(
 my_phylo <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/seqtab_final.rds")
 my_phylo_tax <- readRDS('/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/tax_final.rds')
 
-
-
 ####################
 # Build Lat/Long Dataframe
 ####################
+clim <- plant_clim$clim_data
+rownames(clim) <- clim$Sequence_ID
+plant_phylo <- phyloseq(sample_data(clim), refseq = plant_clim$refseq, tax_table = plant_clim$tax_table, phy_tree = plant_clim$phy_tree, otu_table = plant_clim$otu_table )
 sample_data(GP1000)$Lat <- as.numeric(as.character(sample_data(GP1000)$Lat))
 sample_data(GP1000)$Long <- as.numeric(as.character(sample_data(GP1000)$Long))
-GP1000_dim <- subset_samples(GP1000, sample_data(GP1000)$samples.out %in% colnames(my_bac))
-reorder <- as.character(sample_data(GP1000_dim)$samples.out)
+#GP1000_dim <- subset_samples(GP1000, sample_data(GP1000)$samples.out %in% colnames(my_bac))
+GP1000_dim <- subset_samples(plant_phylo, sample_data(plant_phylo)$Sequence_ID %in% colnames(my_bac))
+reorder <- as.character(sample_data(GP1000_dim)$Sequence_ID)
 my_bac <- my_bac[, reorder]
 my_oom <- my_oom[, reorder]
 my_fungi <- my_fungi[, reorder]
@@ -109,6 +112,44 @@ sample_data(GP1000_dim)$otu5 <- otu_table(GP1000_dim)[,"seq_10"]/1000
 
 tot_frame <- data.frame(sample_data(GP1000_dim))
 tot_frame$Lat <- as.numeric(as.character(tot_frame$Lat))
+
+
+####################
+# Correspondence between 16S and metagenome
+####################
+
+# aggregate ASV table at family
+otu_table(GP1000_dim) <- otu_table(GP1000_dim)/1000
+GP_fam <- tax_glom(GP1000_dim, "Family")
+shared_fam <- c(tax_table(GP_fam)[,5][which(tax_table(GP_fam)[,5] %in%  rownames(my_bac))])
+keep <-rownames(tax_table(GP_fam)[which(c(tax_table(GP_fam)[,5]) %in% shared_fam),])
+GP_shared <- prune_taxa(keep, GP_fam)
+
+my_bac_red <- t(my_bac[c(tax_table(GP_shared)[,5]),])
+my_bac_red <- my_bac_red/(rowSums(my_bac_red, na.rm = TRUE) + 0.0000001)
+GP_tab <- otu_table(GP_shared)
+colnames(GP_tab) <- colnames(my_bac_red)
+GP_tab <- GP_tab[,order(colSums(GP_tab), decreasing=TRUE)]
+my_bac_red <- my_bac_red[,colnames(GP_tab)]
+GP_10 <- melt(GP_tab[,c(1:10)], id=c("ID", "Family", "16S"))
+my_bac_10 <- melt(my_bac_red[,c(1:10)])
+#GP_10$Var3 <- "16S"
+#my_bac_10$Var3 <- "Metagenome"
+tog <- GP_10
+tog$metagenome <- my_bac_10$value
+colnames(tog) <- c("PlantID", "Family", "Amplicon", "Metagenome")
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/metagenome_16S.pdf", useDingbats = FALSE, fonts = "ArialMT", width = 3.5, height = 2)
+ggplot(data = tog, aes(x = Amplicon*100, y = Metagenome*100)) +
+  geom_point(aes(col = Family)) +
+  scale_color_brewer(palette = "Paired", guide = guide_legend(override.aes = list(size = 3,
+                                                                                  alpha = 1) ) ) +
+  theme_classic() +
+  geom_abline(slope = 1, intercept = 0, col = "Grey", linetype = "dashed") +
+  xlab("16S Amplicon RA (%)") +
+  ylab("Metagenomic RA (%)")
+
+dev.off()
 
 ####################
 # Build maps of abundance of pathogens

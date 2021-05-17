@@ -36,8 +36,10 @@ my.responseorig <- data.frame(sqrt(plant_clim$otu_table/1000)) %>%
 colnames(my.responseorig) = c("MDS1", "MDS2")
 col1 = plant_clim$clim_data$Tour_ID
 
+# Correlation of MDS1 and MDS2 with lat
+cor.test(plant_clim$clim_datal$Lat, my.responseorig$MDS1) # R = 0.75
 
-#Identify clusters
+cor.test(plant_clim$clim_datal$Lat, my.responseorig$MDS1) # R = -0.24
 
 #################################
 # Set response variable as MDS1 or as cluster
@@ -82,7 +84,6 @@ import_2$Variable <- rownames(import_2)
 colnames(import_2)[1] <- "Importance"
 
 # plot relative importance
-
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/feature_importance.pdf",
     useDingbats = FALSE, fonts = "ArialMT", width = 3.5, height = 2)
 importance <- ggplot(import_2, aes(x = reorder(Variable, Importance), 
@@ -170,7 +171,6 @@ import_2$Variable <- rownames(import_2)
 colnames(import_2)[1] <- "Importance"
 
 # plot relative importance
-
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/feature_importance.pdf",
     useDingbats = FALSE, fonts = "ArialMT", width = 3.5, height = 3.5)
 importance <- ggplot(import_2, aes(x = reorder(Variable, Importance), 
@@ -306,6 +306,7 @@ for(asv in colnames(plant_clim$otu_table)){
 lat_only <- length(which(otu_sig$pval_pds<0.01)) / dim(otu_sig)[1] #33%
 pdsI_lat_correct <- length(which(otu_sig$pds_tog<0.01)) / dim(otu_sig)[1] #10%
 
+
 #plot correlation of ASVs with latitude or PDSI
 
 keep_otu_lat_pos <- keep_otu[,which(otu_sig$pval_lat<0.01 & otu_sig$lat_corr>0)]/1000
@@ -409,25 +410,7 @@ ggroc(list("Random Forest" = g1_3, "Full logit" = logit_roc, "logit Latitude Onl
 dev.off()
 
 
-# PDSI_1 <- ggplot(data = newdat, aes(x=PDSI, y = vs)) +
-#   geom_line() +
-#   geom_jitter(data = tog, aes(x = PDSI, y = recode), cex = 1, alpha = 0.5, width = 0.01, height = 0.1) +
-#   theme_pubs +
-#   xlab("PDSI") + 
-#   ylab("Cluster 1 vs Class 2")
-# 
-# PDSI_2 <- ggplot(data = tog, aes(x = as.factor(recode), y = PDSI)) +
-#   geom_boxplot() +
-#   geom_jitter(width = 0.1, alpha = 0.5) +
-#   xlab(c("Class")) +
-#   theme_pubs
-# 
-# pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/PDSI_class.pdf", 
-#     useDingbats = FALSE, fonts = "ArialMT", width = 1.75, height = 1.75)
-# #plot_grid(PDSI_1, PDSI_2)
-# plot(PDSI_1)
-# dev.off()
-# 
+
 # #################################
 # # Step 5: Random forest across OTUs
 # ################################

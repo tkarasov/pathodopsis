@@ -411,7 +411,7 @@ plant_otu$Longitude = as.numeric(as.character(plant_clim$clim_data$Long))
 plant_otu <- plant_otu %>% filter(is.na(Latitude)==FALSE)
 
 set.seed(4)
-plant_otu$Longitude = plant_otu$Latitude + runif(length(plant_otu$Latitude), 0, 0.0001)
+plant_otu$Longitude = plant_otu$Longitude + runif(length(plant_otu$Longitude), 0, 0.0001)
 
 # no trend:
 my.transform <- "+proj=longlat +datum=WGS84 +no_defs"
@@ -587,7 +587,9 @@ v.plot = ggplot(v, aes(x = dist, y = gamma)) +
   theme_bw() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
 
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU5_semivariance.pdf", useDingbats = FALSE, font = "ArialMT", width  = 3.5, height = 3.5)
 v.plot
+dev.off()
 
 
 

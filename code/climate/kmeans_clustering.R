@@ -337,33 +337,3 @@ cluster_plot
 dev.off()
 
 
-# ####################################################################################
-# # nMDS
-# ####################################################################################
-# example_NMDS <- metaMDS(otu_table(only_ath), k=8, trymax = 100)
-# plot(example_NMDS)
-# 
-# hm = data.frame(example_NMDS$points)
-# 
-# hm$PDS1 = plant_clim$clim_data$PDSI
-# 
-# hm$kmean = clusters$cluster
-# 
-# ggplot(hm, aes(x = MDS1, y = MDS2, z = MDS3, col = PDS1)) + geom_point() +
-#   theme_bw() +
-#   axes_3D() + 
-#   stat_3D() +
-#   scale_color_viridis_c()
-# 
-# 
-# #plot nMDS stress
-# n = 10
-# stress <- vector(length = n)
-# for (i in 1:n) {
-#   stress[i] <- metaMDS(otu_table(only_ath), distance = "bray", k = i)$stress
-# }
-# names(stress) <- paste0(1:n, " Dimension")
-# # x11(width = 10/2.54, height = 7/2.54)
-# par(mar = c(3.5,3.5,1,1), mgp = c(2, 0.6, 0), cex = 0.8, las = 2)
-# barplot(stress, ylab = "Stress")
-# 
