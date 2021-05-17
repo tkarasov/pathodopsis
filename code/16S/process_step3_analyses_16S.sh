@@ -32,7 +32,7 @@ $scripts/climate/kmeans_clustering.R
 $scripts/climate/kriging_OTU5_map.R
 
 # Metagenome and pathogen comparisons
-$scripts/climate/metagenome_abundance.R
+$scripts/metagenome/metagenome_abundance.R
 
 # Latitude and ASV comparisons
 $scripts/climate/metagenome_abundance.R
