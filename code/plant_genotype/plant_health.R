@@ -66,6 +66,9 @@ dev <- base_map +
               alpha =.5) +
   scale_color_viridis_c(name="Developmental State") 
 
+variables <- clim_df %>% select(c(Developmental_state, Disease_RL, Herbivory, R_diameter, Lat))
+variables_gather <- melt(variables, id.vars="Lat")
+  
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/map_plant_health.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7.2)
 plot_grid(herbivory, disease, size, dev)
 dev.off()
@@ -102,4 +105,4 @@ dev.off()
 # OTU_corr <-OTU %>% mutate_all(corr)
   #sapply(OTU, function(x)cor.test(c(x), disease, na.rm = TRUE))
 
-# plot_bar(plant_clim, "Family", fill="Genus", facet_grid=~Disease_RL)OA
+# plot_bar(plant_clim, "Family", fill="Genus", facet_grid=~Disease_RL)OA
