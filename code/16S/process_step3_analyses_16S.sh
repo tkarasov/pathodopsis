@@ -37,11 +37,17 @@ $scripts/metagenome/metagenome_abundance.R
 # Latitude and ASV comparisons
 $scripts/climate/metagenome_abundance.R
 
+# Statistical comparison of ASVs between clusters
+$scripts/climate/compare_taxa.R
+
 # Random forest on the microbiome of plants
 $scripts/climate/random_forest_iterative_temp.R
 
 # Random forest on the microbiome of soils
 $scripts/climate/random_forest_iterative_soil.R
+
+# Model selection for importance of variables
+$scripts/climate/model_selection.R
 
 # Plant genotype comparisons to show differences in Fst of immune genes
 $scripts/plant_genotype/IBS.R
