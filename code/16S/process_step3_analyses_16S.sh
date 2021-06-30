@@ -2,7 +2,6 @@
 # this script is the overall analysis script to generate the many analyses
 scripts=/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/
 
-
 # Make the generic OTU table
 ### 16S
 $scripts/amplicon_general/after_dada2_make_otutable_generic.R
@@ -35,6 +34,9 @@ $scripts/climate/kriging_OTU5_map.R
 $scripts/metagenome/metagenome_abundance.R
 
 # Latitude and ASV comparisons
+$scripts/climate/metagenome_abundance.R
+
+# Comparing statistical models of association between Lat. and PDSI; also Latitude and ASV comparisons (Figure 3)
 $scripts/climate/metagenome_abundance.R
 
 # Statistical comparison of ASVs between clusters
