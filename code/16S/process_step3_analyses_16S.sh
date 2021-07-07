@@ -36,6 +36,9 @@ $scripts/metagenome/metagenome_abundance.R
 # Latitude and ASV comparisons
 $scripts/climate/metagenome_abundance.R
 
+# Comparison to Kemen's temporal data
+$scripts/16S/merge_ours_kemen_16S.R
+
 # Comparing statistical models of association between Lat. and PDSI; also Latitude and ASV comparisons (Figure 3)
 $scripts/climate/metagenome_abundance.R
 
