@@ -77,10 +77,10 @@ is.nan.data.frame <- function(x) {do.call(cbind, lapply(x, is.nan))}
 
 metadata[is.nan.data.frame(metadata)] <- 0
 GP_poo <- GP1000_dim
-otu_table(GP1_poo) <- otu_table(GP1000_dim)/1000[,c(1:50)]
-bray <- phyloseq::distance(GP1000_dim, method="bray")
+otu_table(GP_poo) <- otu_table(GP1000_dim)[,c(1:50)]/1000
+bray <- phyloseq::distance(GP_poo, method="bray")
 
-perm <- adonis2(bray ~ Lat +  Date, data = metadata, na.action = na.omit)
+perm <- adonis2(bray ~ Date + PDSI, data = metadata, na.action = na.omit)
 
 Date + PDSI + srad + vpd + Elevation + ws + pet + 
 

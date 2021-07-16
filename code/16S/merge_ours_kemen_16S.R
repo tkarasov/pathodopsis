@@ -5,6 +5,7 @@ library(dada2)
 library(tidyr)
 library(DESeq2)
 library(reshape2)
+library(cowplot)
 
 
 # This script takes the seqtabs from our whole experiment and kemens whole experiment and looks for 
@@ -26,19 +27,20 @@ kemen_metadata[which(kemen_metadata$Month=="Dec"),]$Season <-"Winter"
 kemen_metadata[which(kemen_metadata$Month!="Dec"),]$Season <-"Spring"
 rownames(kemen_metadata) <- kemen_metadata$Run
 
-all_tax <- rbind(kemen_tax, my_phylo_tax) 
-keep_tax <- all_tax[colnames(st.all),]
-
-# Same German
-germans <- plant_clim$clim_data %>% filter(as.numeric(as.character(Lat))>48.0 & 
-                                             as.numeric(as.character(Lat))<49.0 &
-                                             as.numeric(as.character(Long))>8.75 & 
-                                             as.numeric(as.character(Long))<9.25)
-
-
-saveRDS(st.all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_kemen_all/seqtab_combined.rds") # CHANGE ME to where you want sequence table saved
-saveRDS(keep_tax, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_kemen_all/study/tax_combined.rds") # CHANGE ME ...
-
+# # st.all <-  
+# all_tax <- rbind(kemen_tax, my_phylo_tax) 
+# keep_tax <- all_tax[colnames(st.all),]
+# 
+# # Same German
+# germans <- plant_clim$clim_data %>% filter(as.numeric(as.character(Lat))>48.0 & 
+#                                              as.numeric(as.character(Lat))<49.0 &
+#                                              as.numeric(as.character(Long))>8.75 & 
+#                                              as.numeric(as.character(Long))<9.25)
+# 
+# 
+# saveRDS(st.all, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_kemen_all/seqtab_combined.rds") # CHANGE ME to where you want sequence table saved
+# saveRDS(keep_tax, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_kemen_all/study/tax_combined.rds") # CHANGE ME ...
+# 
 
 ####################################
 # Make phyloseq object of combined datasets
@@ -94,7 +96,7 @@ exp4 <-  ((MDS_mine_tot$eig) / sum(MDS_mine_tot$eig))[2]*100
 MDS_plot_kmeans <- 
   ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
   geom_point(aes(col=as.factor(sample_data(fin.ours)$cluster)), cex = 3, alpha = 0.1) +
-  scale_colour_brewer(name = "Cluster", palette = "Dark2") +
+  scale_colour_manual(name = "Cluster", values = c("#D95F02", "#1B9E77", "#E31A1C", "#1F78B4")) +
   theme_bw() +
   xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
   ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
@@ -111,9 +113,9 @@ MDS_plot_kmeans <-
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_pcoa.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
-MDS_plot_kmeans + 
-  geom_point(data = new_kemen, aes(x=eig1, y=eig2,col = as.factor(sample_data(fin.kemen)$Season)), cex = 2) +
-  geom_point(data=MDS.points[as.character(germans$Sequence_ID),], aes(x=MDS1, y=MDS2))
+proj <- MDS_plot_kmeans + 
+  geom_point(data = new_kemen, aes(x=eig1, y=eig2,col = as.factor(sample_data(fin.kemen)$Season)), cex = 2) 
+  #geom_point(data=MDS.points[as.character(germans$Sequence_ID),], aes(x=MDS1, y=MDS2))
   #geom_point(data = new_ours, aes(x=eig1, y=eig2) ) 
 dev.off()
 
@@ -169,7 +171,7 @@ effect_2 <- lm(eig2 ~ Season , data = all_kemen)
 # Differential expression of genes between season and by cluster
 ####################################
 metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),] 
-metadata2 <- metadata[1:1077,]#metadata[-which(metadata$Sequence_ID=="NA"),]
+metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
 rownames(metadata2) <- metadata2$Sequence_ID
 
 subset_kemen <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
@@ -187,9 +189,9 @@ my_total <-phyloseq(otu_table(subset_mine, taxa_are_rows = FALSE) + 1,
 diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
-# Identify ASVs that differ in abundance between clusters 1 and 3
+# Identify ASVs that differ in abundance between clusters 1 and 2
 results.kemen <- results(diagdds.kemen, name="Season_Winter_vs_Spring")
-results.ours <- results(diagdds.ours, name="cluster_3_vs_1")
+results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
 # Identify how many of them change with the season
 results_df <- data.frame(gene=results.ours@rownames, 
@@ -204,10 +206,10 @@ results_df <- results_df[which(is.na(results_df$gene)==FALSE),]
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_kemen_ours.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
-ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
+FC_kemen <- ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
   geom_point() +
   xlab("log2(Fold Change Between Seasons)") +
-  ylab("log2(Fold Change Between Clusters 1 and 3") +
+  ylab("log2(Fold Change Between Clusters 1 and 2") +
   theme_bw() +
   scale_color_viridis_d()+
   geom_hline(yintercept = 0, lty="dashed")+
@@ -218,9 +220,31 @@ ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
         legend.text.align = 0,
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
-  
+FC_kemen 
+ 
 dev.off()
 
+kmeans <- readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_plot_kmeans.rds")
+kmeans_map <- readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kmeans_map.rds")
+all_MDS<- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_all.rds")
+thal_cap <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/thal_cap_mds.rds" )
+
+p1 <- plot_grid( all_MDS + theme(legend.position = "none"), thal_cap + theme(legend.position = "none"),
+                 kmeans, FC_kemen + xlab("log2(FC Seasons") + ylab("log2(FC Clusters"), align = 'hv', ncol = 2)
+
+p2 <- plot_grid(kmeans_map, proj, rel_widt = c(0.7, 0.3), align = 'hv', ncol =2)
+fig2 <- plot_grid(p1, p2,
+          #proj, FC_kemen, 
+          align = 'hv', nrow = 2)
+  
+pdf(fig2,"/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fig2_all.pdf", useDingbats = FALSE, 
+    font = "ArialMT", width = 3.5)
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_comparisons_fig2.pdf", useDingbats = FALSE, 
+    font = "ArialMT", width = 3.5, height  = 3.5/2)
+plot_grid(proj, FC_kemen)
+dev.off()
 ####################################
 # Seasonal Fluctuations of Kemen microbiome
 ####################################
@@ -272,5 +296,5 @@ tot <- pos_pos + pos_neg + neg_pos + neg_neg
 sub.freqs <- c(pos_pos, pos_neg, neg_pos, neg_neg)
 
 # Calculate the multinomial probability confidence intervals (alpha = 0.05, two-sided)
-multinom_prob <- MultinomCI(sub.freqs, conf.level = 0.95, method = "wald")
+multinom_prob <- MultinomCI(sub.freqs, conf.level = 0.99, method = "wald")
 
