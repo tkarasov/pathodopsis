@@ -42,7 +42,7 @@ hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#1
 
 #choose whether working on home computer or at work
 path="/ebio"
-source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/scripts/16S/amp_seq_functions.R", sep=""))
+source(paste(path, "/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/16S/amp_seq_functions.R", sep=""))
 
 #https://f1000research.com/articles/5-1492/v1 This is the dada2 file
 

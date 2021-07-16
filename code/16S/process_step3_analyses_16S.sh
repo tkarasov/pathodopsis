@@ -2,7 +2,6 @@
 # this script is the overall analysis script to generate the many analyses
 scripts=/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/
 
-
 # Make the generic OTU table
 ### 16S
 $scripts/amplicon_general/after_dada2_make_otutable_generic.R
@@ -37,11 +36,23 @@ $scripts/metagenome/metagenome_abundance.R
 # Latitude and ASV comparisons
 $scripts/climate/metagenome_abundance.R
 
+# Comparison to Kemen's temporal data
+$scripts/16S/merge_ours_kemen_16S.R
+
+# Comparing statistical models of association between Lat. and PDSI; also Latitude and ASV comparisons (Figure 3)
+$scripts/climate/metagenome_abundance.R
+
+# Statistical comparison of ASVs between clusters
+$scripts/climate/compare_taxa.R
+
 # Random forest on the microbiome of plants
 $scripts/climate/random_forest_iterative_temp.R
 
 # Random forest on the microbiome of soils
 $scripts/climate/random_forest_iterative_soil.R
+
+# Model selection for importance of variables
+$scripts/climate/model_selection.R
 
 # Plant genotype comparisons to show differences in Fst of immune genes
 $scripts/plant_genotype/IBS.R
