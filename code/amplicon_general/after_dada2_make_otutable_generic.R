@@ -1,6 +1,6 @@
 library(phyloseq)
 library(dada2)
-library(dplyr)
+library(dplyr) 
 library(tidyverse)
 library(genefilter)
 library("RColorBrewer")
@@ -97,6 +97,7 @@ rm(dna)
 # Now filter mitochondria and taxa that are never observed with 50 reads in a sample
 #######################################################################
 mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
+save(GP, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP_nofilter.rds")
 GP = prune_taxa(mito, GP)
 flist    <- filterfun(kOverA(1, 50))
 GP50 = filter_taxa(GP, flist, TRUE )

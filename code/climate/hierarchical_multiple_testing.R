@@ -38,7 +38,7 @@ GPmine <- prune_taxa(colnames(otu_table(GP_at15_all)), phy_seq50_reorder)
 # Do MDS on full otu_clim dataset
 # #######################################################################
 # First the plot for the MDS on the total dataset
-MDS.all <- (sqrt(OTU_clim$otu_table)) %>% dist() %>% cmdscale(eig = TRUE)
+MDS.all <- (sqrt(OTU_clim$otu_table/1000)) %>% dist() %>% cmdscale(eig = TRUE)
 exp1 <-  ((MDS.all$eig) / sum(MDS.all$eig))[1]*100
 exp2 <-  ((MDS.all$eig) / sum(MDS.all$eig))[2]*100
 
@@ -60,8 +60,10 @@ all_data_MDS <- ggplot(data = data.frame(MDS.all$points), aes(x=MDS1, y=MDS2)) +
         #legend.box.background = element_rect(colour = "black")
   )
         
-
-MDS.cap <- (sqrt(cap_clim$otu_table)) %>% dist() %>% cmdscale(eig = TRUE)
+cap_clim <- OTU_clim
+cap_clim$clim_data <- OTU_clim$clim_data[which(OTU_clim$clim_data$"Host_Species"!="Soil"),]
+cap_clim$otu_table <- OTU_clim$otu_table[which(OTU_clim$clim_data$"Host_Species"!="Soil"),]
+MDS.cap <- (sqrt(cap_clim$otu_table/1000)) %>% dist() %>% cmdscale(eig = TRUE)
 col2 = cap_clim$clim_data$Host_Species
 exp3 <-  ((MDS.cap$eig) / sum(MDS.cap$eig))[1]*100
 exp4 <-  ((MDS.cap$eig) / sum(MDS.cap$eig))[2]*100
@@ -85,6 +87,8 @@ thaliana_cap_MDS <- ggplot(data = data.frame(MDS.cap$points), aes(x=MDS1, y=MDS2
 legend <- get_legend(all_data_MDS) +
   theme(legend.position = "bottom")
 
+saveRDS(all_data_MDS, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_all.rds")
+saveRDS(thaliana_cap_MDS, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/thal_cap_mds.rds" )
 all_capsella <- plot_grid(all_data_MDS + theme(legend.position = "none"), thaliana_cap_MDS + theme(legend.position = "none"))
 
 

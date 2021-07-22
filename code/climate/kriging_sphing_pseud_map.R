@@ -22,10 +22,8 @@ devtools::install_git(url = 'https://github.com/tkarasov/taliaRgeneral.git')
 library(taliaRgeneral)
 library(showtext)
 library(extrafont)
-library(inrval)
+library(intrval)
 Arial = font_add("Arial", "/ebio/abt6_projects9/metagenomic_controlled/Programs/anaconda3/envs/pathodopsis/misc_tkarasov/fonts/Arial.ttf")
-
-
 
 theme_opts<-list(theme(panel.grid.minor = element_blank(),
                        panel.grid.major = element_blank(),
@@ -122,6 +120,26 @@ the_mode = getmode(kriging_result$krige_output@data$var1.pred)
 Krig.fin = kriging_result
 Krig.fin$krige_output@data$var1.pred[which(Krig.fin$krige_output@data$var1.pred==the_mode)] = NA
 
+# Now let's do the same for sphing
+#automap seems a little faster
+
+kriging_result_sphing = autoKrige(formula = sphing~1, input_data = sp.laea, new_data = grd.laea)
+kriging_result1_sphing = autoKrige(formula = sphing~1, input_data = sp.laea, new_data = europe.laea)
+Krig_sphing = kriging_result_sphing$krige_output
+
+# take only the points falling in polygons. This is the step where we limit the infomration
+Krig_sphing = kriging_result_sphing$krige_output[!is.na(over(kriging_result_sphing$krige_output,as(europe.laea,"SpatialPolygons"))),]  
+Krig.fin_sphing = spTransform(Krig_sphing, my.transform)
+Krig_df_sphing = as.data.frame(Krig.fin_sphing)
+names(Krig_df_sphing) = c(  "APPT_pred","APPT_var","APPT_stdev", "longitude","latitude")
+my.df = as.data.frame(my.sp)
+
+#Make a dataframe of Kriging in which the poorly interpolated points are just white
+the_mode = getmode(kriging_result$krige_output@data$var1.pred)
+Krig.fin = kriging_result
+Krig.fin$krige_output@data$var1.pred[which(Krig.fin$krige_output@data$var1.pred==the_mode)] = NA
+
+
 ####################################################################################
 # Plot world map with data points
 ####################################################################################
@@ -134,9 +152,9 @@ pal <- wes_palette("Zissou1", 100, type = "continuous")
 
 base_europe_df <-
   ggplot() +
-  geom_raster(data = Krig_df, 
-              aes(x = Krig_df$longitude, 
-                  y = Krig_df$latitude, fill = NULL
+  geom_raster(data = Krig_df_sphing, 
+              aes(x = Krig_df_sphing$longitude, 
+                  y = Krig_df_sphing$latitude, fill = NULL
               ), 
               inherit.aes = T)
 
@@ -144,10 +162,24 @@ base_europe_df <-
 pseud_point <-
   base_europe_df + 
   geom_jitter(data = my.df, 
-              aes(coords.x1, coords.x2, colour = log10(pseud)), 
-              width = .5, cex = 2) +
+              aes(coords.x1, coords.x2, colour = log10(as.numeric(pseud))), 
+              width = 1, cex = 1, alpha = 0.75) +
   scale_colour_gradientn(colours = pal,
-                         values = c(0, 0.1, 0.4, 1), name = "log10(RA(%))") +
+                         values = c(0, 1, 5, 10, 40, 1), name = "log10(RA(%))") +
+  scale_y_continuous(expand = c(0,0), limits = c(ymin_plot, ymax_plot)) +
+  scale_x_continuous(expand = c(0,0), limits = c(xmin_plot, xmax_plot)) +
+  theme_opts + 
+  #theme_pubs +
+  xlab(label = NULL) +
+  ylab(label = NULL)
+
+sphing_point <-
+  base_europe_df + 
+  geom_jitter(data = my.df, 
+              aes(coords.x1, coords.x2, colour = log10(as.numeric(sphing))), 
+              width = 1, cex = 1, alpha = 0.75) +
+  scale_colour_gradientn(colours = pal,
+                         values = c(0, 1, 5, 10, 40, 1), name = "log10(RA(%))") +
   scale_y_continuous(expand = c(0,0), limits = c(ymin_plot, ymax_plot)) +
   scale_x_continuous(expand = c(0,0), limits = c(xmin_plot, xmax_plot)) +
   theme_opts + 
@@ -159,8 +191,6 @@ pseud_point <-
 ####################################################################################
 # Plot Kriging Interpolation
 ####################################################################################
-
-
 krig_pseud <-
   ggplot(data = my.df, aes(x=coords.x2, y=coords.x1)) +
   geom_raster(data = Krig_df, 
@@ -174,18 +204,37 @@ krig_pseud <-
                      limits = c(xmin_plot, xmax_plot)) +
   scale_fill_distiller(palette = "Spectral", 
                        labs(size="OTU5 RA(%)"), 
-                       breaks = seq(0,1,.05)) +
+                       breaks = seq(0,100,10)) +
   theme_opts +
   #theme_pubs  +
   xlab(label = NULL) +
   ylab(label = NULL)
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.pdf", family = "ArialMT", useDingbats = F)
-otu5_grid <-plot_grid(pseud_point, krig_pseud, nrow = 2)
-otu5_grid
-dev.off()
 
-save(otu5_grid, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.rds" )
+krig_sphing <-
+  ggplot(data = my.df, aes(x=coords.x2, y=coords.x1)) +
+  geom_raster(data = Krig_df_sphing, 
+              aes(x = Krig_df_sphing$longitude, 
+                  y = Krig_df_sphing$latitude, 
+                  fill = Krig_df_sphing$APPT_pred), 
+              inherit.aes = T) + 
+  scale_y_continuous(expand = c(0,0), 
+                     limits = c(ymin_plot, ymax_plot)) +
+  scale_x_continuous(expand = c(0,0), 
+                     limits = c(xmin_plot, xmax_plot)) +
+  scale_fill_distiller(palette = "Spectral", 
+                       labs(size="Sphingomonas top ASV RA(%)"), 
+                       breaks = seq(0,100,10)) +
+  theme_opts +
+  #theme_pubs  +
+  xlab(label = NULL) +
+  ylab(label = NULL)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_pseud_sphing.pdf", family = "ArialMT", useDingbats = F)
+pseud_sphing_grid <-plot_grid(sphing_point, krig_sphing, pseud_point, krig_pseud, nrow = 2)
+pseud_sphing_grid
+dev.off()
+save(pseud_sphing_grid, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_pseud_sping.rds" )
 
 
 ####################################################################################

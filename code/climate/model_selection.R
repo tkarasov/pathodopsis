@@ -230,11 +230,25 @@ ps_plot <- ggplot(data = ps_gather, aes(x = Lat, y = value/10, col = key)) +
   annotate("text",  x=60, y = 1, label = "Pseudomonadaceae", vjust=1, hjust=1)
 
 
-p2 <- plot_grid(nrow = 2, sp_plot, ps_plot)
+p2 <- plot_grid(nrow = 2, sp_plot, ps_plot, align = "hv")
 
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pval_lat_asv.pdf", useDingbats = FALSE, font = "ArialMT", width  = 7, height=6)
-plot_grid(pval_plot + theme(axis.text.x=element_text(size=rel(0.5))), p2, ncol = 2, labels = c("A", "B", "C"))
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pval_lat_asv.pdf", useDingbats = FALSE, family = "ArialMT", width  = 7, height=4)
+lat = plot_grid(pval_plot + theme(axis.text.x=element_text(size=rel(0.5))), p2, ncol = 2, labels = c("A", "B", "C"))
+lat
+dev.off()
+
+saveRDS(lat, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/lat_fdr.rds")
+
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_pseud_sping.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/Fst_plot.rds")
+
+p1 <- plot_grid(pval_plot + theme(axis.text.x=element_text(size=rel(0.5))), p2, ncol = 2, rel_widths = c(2,1))
+p3 <- plot_grid(pseud_sphing_grid, Fst_plot)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/first_part_lat.pdf", 
+    useDingbats = FALSE, family = "ArialMT", width  = 7, height = 4)
+p1
 dev.off()
 # 
 # forward <- regsubsets(MDS1 ~ ., plant_red, nvmax = 19, method = "forward")

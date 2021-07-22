@@ -105,6 +105,8 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fst_acd6.pdf
 Fst_plot 
 dev.off()
 
+saveRDS(Fst_plot, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/Fst_plot.rds")
+
 
 tped <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/acd6_patho.vcf.tped", 
                    header = FALSE, sep = "\t")
@@ -260,6 +262,8 @@ plot(dend)
 snp_table1 <- sapply(snp_table, function(x){x <- gsub("./.",NA,x)})
 rownames(snp_table1) <- rownames(snp_table)
 pca <- snpgdsPCA(genofile_acd6, num.thread = 4, maf=0.05)
+
+
 #######################################################################
 # Calculate kinship and pca
 #######################################################################
@@ -391,6 +395,7 @@ colnames(variants) <- variants2$POS
 mine <- variants[,which(colnames(variants)=="8295146")]
 samps = as.character(plant_clim$clim_data$Sequence_ID)
 plant_clim$clim_data$snp8295146 <- mine[samps,1]$`8295146`
+
 #######################################################################
 # Look at Variogram
 #######################################################################
@@ -567,9 +572,6 @@ otu5_lat <- ggplot(data = plant_clim$clim_data, aes(x = Lat, y = otu5)) +
   theme_bw() + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
 
-
-
-
 i = 7
 my.label <- paste(plant_clim$tax_table[i], opti_var[i], sep = ",")[6]
 eq <- as.formula(paste(paste("log10(",opti_var[i],sep=""), "+0.01)/10~1", sep=""))
@@ -590,7 +592,6 @@ v.plot = ggplot(v, aes(x = dist, y = gamma)) +
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTU5_semivariance.pdf", useDingbats = FALSE, font = "ArialMT", width  = 3.5, height = 3.5)
 v.plot
 dev.off()
-
 
 
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.rds")

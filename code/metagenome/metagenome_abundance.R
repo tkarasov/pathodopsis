@@ -216,6 +216,8 @@ Krig_df_tot <- krig_it(kriging_result_tot)
 Krig_df_hpa <- krig_it(kriging_result_hpa)
 Krig_df_albug <- krig_it(kriging_result_albug)
 Krig_df_otu5 <- krig_it(kriging_result_otu5)
+
+
 ####################################################################################
 # Plot world map with data points
 ####################################################################################
@@ -287,3 +289,151 @@ all_grid
 dev.off()
 
 save(otu5_grid, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kriging_OTU5.rds" )
+
+####################################################################################
+# What environmental factor relates to disease index?
+####################################################################################
+lm_rec<- data.frame(otu = colnames(plant_clim$otu_table), pval = c(NA)*575)
+
+for(i in 1:dim(plant_clim$otu_table)[2]){
+  df = data.frame(OTU = plant_clim$otu_table[,i], Lat =  plant_clim$clim_data$Disease_RL ) 
+  colnames(df) = c("OTU", "Lat")
+  model <- lm( OTU~Lat, data = df)
+  lm_rec[i,2] = summary(model)$coefficients[2,4]
+  lm_rec$freq[i] = sum(plant_clim$otu_table[,i])/(1000*dim(plant_clim$otu_table)[1])
+}
+
+lm_rec$FDR <- p.adjust(lm_rec$pval, method = "BH")
+
+lm_rec$sig_0.01 <- lm_rec$FDR<0.01
+
+lm_rec <- cbind(lm_rec, plant_clim$tax_table )
+
+lm_fam <- lm_rec %>% filter(Family %in% names(which(table(lm_rec$Family)>=5)))
+
+# Most significant associations with Lat come from Sphingomonadaceae
+
+pval_plot <- ggplot(aes(x = Family, y = -log10(FDR), col = freq*100), data = lm_fam, col = freq) + 
+  geom_point(aes(size = freq))+ scale_color_viridis_c( direction = -1 ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_hline(yintercept = 2, col = "Red", lty = "dashed", alpha = 0.5) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(legend.position = "top")
+
+
+pval_plot <- pval_plot + theme(
+  legend.position = c(.95, .95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(6, 6, 6, 6)
+)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/disease_otu_association.pdf", 
+    family = "ArialMT", useDingbats = F, width = 3.5)
+pval_plot
+dev.off()
+
+####################################################################################
+# albugo load relationship to disease index?
+####################################################################################
+shared_bac <- my_bac[,which(colnames(my_bac) %in% plant_clim$clim_data$Plant_ID)]
+shared_oom <- my_oom[,which(colnames(my_oom) %in% plant_clim$clim_data$Plant_ID)]
+shared_org <- t(rbind(my_bac, my_oom[,colnames(my_bac)]))
+plant_shared <- plant_clim$clim_data[which(plant_clim$clim_data$Plant_ID %in% rownames(shared_org)),]
+shared_org <- shared_org[as.character(plant_shared$Plant_ID),]
+shared_org <- shared_org[,which(is.na(colSums(shared_org))==FALSE)]
+
+lm_rec<- data.frame(otu = colnames(shared_org), pval = c(NA)*395)
+plant_shared$disease = c(plant_shared$Disease_RL %in% c(5))
+for(i in 1:dim(shared_org)[2]){
+  df = data.frame(OTU = shared_org[,i], Lat =  plant_shared$disease) 
+  colnames(df) = c("OTU", "Lat")
+  model <- lm( OTU~Lat, data = df)
+  lm_rec[i,2] = summary(model)$coefficients[2,4]
+  lm_rec$freq[i] = sum(shared_org[,i])/395
+}
+
+lm_rec$FDR <- p.adjust(lm_rec$pval, method = "BH")
+
+lm_rec$sig_0.01 <- lm_rec$FDR<0.01
+
+lm_rec <- lm_rec %>% filter(freq > 0.001)
+
+
+
+# Most significant associations with Lat come from Sphingomonadaceae
+
+pval_plot <- ggplot(aes(x = otu, y = -log10(FDR), col = freq*100), data = lm_rec, col = freq) + 
+  geom_point(aes(size = freq))+ scale_color_viridis_c( direction = -1 ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_hline(yintercept = 2, col = "Red", lty = "dashed", alpha = 0.5) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(legend.position = "top")
+
+
+albugo_load <- pval_plot + theme(
+  legend.position = c(.95, .95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(6, 6, 6, 6)
+)
+
+
+
+
+####################################################################################
+# HpA load relationship to disease index?
+####################################################################################
+shared_bac <- my_bac[,which(colnames(my_bac) %in% plant_clim$clim_data$Plant_ID)]
+shared_oom <- my_oom[,which(colnames(my_oom) %in% plant_clim$clim_data$Plant_ID)]
+shared_org <- t(rbind(my_bac, my_oom[,colnames(my_bac)]))
+plant_shared <- plant_clim$clim_data[which(plant_clim$clim_data$Plant_ID %in% rownames(shared_org)),]
+shared_org <- shared_org[as.character(plant_shared$Plant_ID),]
+shared_org <- shared_org[,which(is.na(colSums(shared_org))==FALSE)]
+
+lm_rec<- data.frame(otu = colnames(shared_org), pval = c(NA)*395)
+plant_shared$disease = c(plant_shared$Disease_RL %in% c(2))
+for(i in 1:dim(shared_org)[2]){
+  df = data.frame(OTU = shared_org[,i], Lat =  plant_shared$disease) 
+  colnames(df) = c("OTU", "Lat")
+  model <- lm( OTU~Lat, data = df)
+  lm_rec[i,2] = summary(model)$coefficients[2,4]
+  lm_rec$freq[i] = sum(shared_org[,i])/395
+}
+
+lm_rec$FDR <- p.adjust(lm_rec$pval, method = "BH")
+
+lm_rec$sig_0.01 <- lm_rec$FDR<0.01
+
+lm_rec <- lm_rec %>% filter(freq > 0.001)
+
+
+
+# Most significant associations with Lat come from Sphingomonadaceae
+
+pval_plot <- ggplot(aes(x = otu, y = -log10(FDR), col = freq*100), data = lm_rec, col = freq) + 
+  geom_point(aes(size = freq))+ scale_color_viridis_c( direction = -1 ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  geom_hline(yintercept = 2, col = "Red", lty = "dashed", alpha = 0.5) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank()) +
+  theme(legend.position = "top")
+
+
+hpa_load <- pval_plot + theme(
+  legend.position = c(.95, .95),
+  legend.justification = c("right", "top"),
+  legend.box.just = "right",
+  legend.margin = margin(6, 6, 6, 6)
+)
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/albugo_hpa_association.pdf", 
+    family = "ArialMT", useDingbats = F, width = 11)
+plot_grid(albugo_load, hpa_load, ncol = 1)
+dev.off()

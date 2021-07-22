@@ -207,7 +207,7 @@ dim(K)
 
 
 # need an ID variable
-dat <- data.frame(MDS1=my.responseorig$MDS1, plant_clim$clim_data, id = rownames(my.responseorig))
+dat <- data.frame(MDS1=my.responseorig$MDS1, plant_clim$clim_data, id = rownames(my.responseorig), MDS2 =my.responseorig$MDS2)
 
 #subet myresponses to those in K
 keep_rownames <- rownames(my.responseorig)[which(rownames(my.responseorig) %in% rownames(K))]
@@ -223,7 +223,7 @@ pred_val <- function(keep_K, gfit){
   return(keep_K_red, keep_dat_red)
 }
 
-#only kinship
+# Fit model only with kinship using REML. The residuals look bad, showing a strong negative correlation between predicted value and residual.
 gfit1 <- lmekin(MDS1 ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
 gfit1_pred <- keep_K %*% gfit1$coefficients$random$id
 resid <- keep_dat$MDS1 - gfit1_pred
@@ -231,9 +231,12 @@ plot(gfit1_pred, resid)
 fixef(gfit1)
 ranef(gfit1) 
 r.squaredLR(gfit1)
+#  0.1865332, adj  -0.3525118
 
-#kinship and drought
-gfit2 <- lmekin(MDS1 ~ (1|id) + scale(PDSI), data=keep_dat, method = "REML")
+
+# kinship and drought
+keep_cox <- coxmeMlist(keep_K, rescale = TRUE, pdcheck = TRUE, positive = TRUE)
+gfit2 <- lmekin(MDS1 ~ (1|id) + scale(PDSI), data=keep_dat, varlist=keep_K, method = "REML")
 red <- pred_val(keep_K, gfit2)
 gfit2_pred <- keep_K[names(gfit2$coefficients$random$id), names(gfit2$coefficients$random$id)] %*% gfit2$coefficients$random$id + scale(keep_dat[names(gfit2$coefficients$random$id),]$PDSI) %*% gfit2$coefficients$fixed[2]
 resid <- keep_dat[names(gfit2$coefficients$random$id),]$MDS1 - gfit2_pred
@@ -247,6 +250,9 @@ r.squaredLR(gfit3, null.RE = TRUE)
 #kinship and Lat and Drought
 gfit4 <- lmekin(MDS1 ~  (1|id) + scale(Lat) + scale(PDSI), data=keep_dat, varlist=keep_K, method = "REML")
 r.squaredLR(gfit4, null.RE = TRUE)
+
+gfit5 <- lmekin(as.factor(cluster) ~ (1|id), data=keep_dat, varlist=keep_K, method = "REML")
+r.squaredLR(gfit5, null.RE = TRUE)
 
 #################################
 # Plot residuals
@@ -305,7 +311,6 @@ for(asv in colnames(plant_clim$otu_table)){
 #what percentage are correlated with latitude? 
 lat_only <- length(which(otu_sig$pval_pds<0.01)) / dim(otu_sig)[1] #33%
 pdsI_lat_correct <- length(which(otu_sig$pds_tog<0.01)) / dim(otu_sig)[1] #10%
-
 
 #plot correlation of ASVs with latitude or PDSI
 
