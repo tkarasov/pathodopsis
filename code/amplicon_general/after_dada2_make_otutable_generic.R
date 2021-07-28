@@ -13,7 +13,7 @@ hue1_25 = c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#1
 # Merge metadata
 #######################################################################
 
-metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_7_2020_reads.tsv",
+metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_9_2020_reads.tsv",
                       header=T, sep="\t", fill =TRUE)
 
 #######################################################################
@@ -79,6 +79,7 @@ rm(seqtab.nochim,taxa)
 #######################################################################
 #Remove samples with fewer than 1000 reads
 GP0 = prune_samples(sample_sums(ps)>=1000, ps)
+save(GP0, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP_nofilter.rds")
 GP = prune_samples(is.na(sample_data(GP0)$Tour_ID)==FALSE, GP0)
 rm(ps)
 
@@ -97,7 +98,6 @@ rm(dna)
 # Now filter mitochondria and taxa that are never observed with 50 reads in a sample
 #######################################################################
 mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
-save(GP, file = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP_nofilter.rds")
 GP = prune_taxa(mito, GP)
 flist    <- filterfun(kOverA(1, 50))
 GP50 = filter_taxa(GP, flist, TRUE )
