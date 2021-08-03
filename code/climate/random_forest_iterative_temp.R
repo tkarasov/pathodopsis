@@ -37,9 +37,9 @@ colnames(my.responseorig) = c("MDS1", "MDS2")
 col1 = plant_clim$clim_data$Tour_ID
 
 # Correlation of MDS1 and MDS2 with lat
-cor.test(plant_clim$clim_datal$Lat, my.responseorig$MDS1) # R = 0.75
+cor.test(plant_clim$clim_data$Lat, my.responseorig$MDS1) # R = 0.75
 
-cor.test(plant_clim$clim_datal$Lat, my.responseorig$MDS1) # R = -0.24
+cor.test(plant_clim$clim_data$Lat, my.responseorig$MDS2) # R = -0.24
 
 #################################
 # Set response variable as MDS1 or as cluster
@@ -54,6 +54,10 @@ my.response3 <- my.responseorig$MDS2
 #################################
 my.total.matrix.num <- generate_my_total_matrix(my.response2, plant_clim)
 preprocess1 <- preprocess_data(my.total.matrix.num)
+
+# Assign disease_RL NA to 1
+# preprocess1[[1]]$Disease_RL[which(is.na(preprocess1[[1]]$Disease_RL))] <- 1
+
 x_full <- preprocess1[1][[1]]
 x_train <- preprocess1[2][[1]]
 x_test <- preprocess1[3][[1]]

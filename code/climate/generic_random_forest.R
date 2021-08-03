@@ -15,6 +15,7 @@ generate_my_total_matrix <- function(response_choice, mat_clim){
 
   rownames(my.plantID) <-my.total.matrix$Plant_ID
   my.total.matrix <- filter(my.total.matrix, is.na(response) == FALSE) %>% dplyr::select(-c(Plant_ID, Sequence_ID, Site_ID))
+  
   #################################
   # Step 2: Preprocess predictor data into dummy variables
   #################################
@@ -31,9 +32,9 @@ generate_my_total_matrix <- function(response_choice, mat_clim){
             "Strata_road", "Strata_wall_tree", "Strata_water", 
             "Date", "Strata_wall_shrub", "Land_cov", "Long", "Lat",
              "Site_name", "Growing_on", "For", "Host_Species",
-            "Rosette_color", "Ground_type", "Heterogeneity", "cluster", "hc_cuttree2")
+            "Rosette_color", "Ground_type", "Heterogeneity", "cluster", "hc_cuttree2",
+            "Correct_Species", "Disease_RL")
   my.total.matrix.num <- my.total.matrix %>% dplyr::select(-one_of(col_remove))
-
   return(my.total.matrix.num)
 }
   
@@ -44,7 +45,6 @@ preprocess_data <- function(my.total.matrix.num){
   normalization <- preProcess(my.total.matrix.num %>% dplyr::select(-c(response)),
                             method = c("center", "scale", "knnImpute"),
                             na.remove = TRUE)
-
   # Create a training set of 75% of the data
   smp_size <- floor(0.75 * nrow(my.total.matrix.num))
   set.seed(123)
@@ -53,6 +53,7 @@ preprocess_data <- function(my.total.matrix.num){
 
   # Now perform predictions
   x_full <- predict(normalization, my.total.matrix.num %>% dplyr::select(-c(response)))
+  #x_full$Disease_RL <- as.factor(my.total.matrix.num$Disease_RL)
   x_train <- as.data.frame(x_full[train_ind,])
   x_test <- as.data.frame(x_full[-train_ind,])
   #c("knnImpute", "center", "scale"),
