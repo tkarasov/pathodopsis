@@ -58,7 +58,7 @@ plot_bar(plant_otu,"Family", fill = "Genus", facet_grid=~cluster)
 # https://ucdavis-bioinformatics-training.github.io/2017-September-Microbial-Community-Analysis-Workshop/friday/MCA_Workshop_R/phyloseq.html
 #https://joey711.github.io/phyloseq-extensions/edgeR.html
 
-phyloseq_to_edgeR = function(physeq, group, method="RLE", ...){
+phyloseq_to_edgeR <- function(physeq, group, method="RLE", ...){
   require("edgeR")
   require("phyloseq")
   # Enforce orientation.
@@ -107,7 +107,7 @@ extract_results <- function(dge, phylo){
 
 #########
 extract_ASV <- extract_results(dge, plant_otu)
-
+sigtab <- extract_ASV
 
 theme_set(theme_bw())
 scale_fill_discrete <- function(palname = "Set1", ...) {
@@ -133,5 +133,39 @@ ggplot(sigtabgen, aes(x = Genus, y = -1*logFC, color = Phylum)) + geom_point(siz
   theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) +
   scale_color_viridis_d() +
   ylab("log2FC(Northern Cluster/Southern Cluster)")
+
+dev.off()
+
+
+##################
+## Get a random representation of abundance
+
+
+plant_otu <- phyloseq(sample_data(samp_data), 
+                      otu_table = plant_clim$otu_table, 
+                      phy_tree = plant_clim$phy_tree, 
+                      refseq = plant_clim$refseq,
+                      tax_table = plant_clim$tax_table)
+
+# Choose some North and South
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000.rds")
+load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
+
+set.seed(4)
+north = which(sample_data(plant_otu)$cluster==2)
+south = which(sample_data(plant_otu)$cluster==1)
+n20 <- sample_data(plant_otu)$Plant_ID[sample(north, 25)]
+s20 <- sample_data(plant_otu)$Plant_ID[sample(south, 25)]
+n_s <- as.factor(c(as.character(n20), as.character(s20)))
+sub_sample <- subset_samples(GP1000, samples.out %in% n_s)
+sample_data(sub_sample)$cluster <- sample_data(subset_samples(plant_otu, Sequence_ID  %in% n_s))$cluster
+
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/temp.pdf",
+    useDingbats = FALSE, font = "ArialMT")
+plot_bar(sub_sample, fill="Phylum" ) +
+  facet_grid(~cluster, scale="free_x", drop=TRUE) + 
+  scale_color_manual(c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744", "#AA4455"))
+
 
 dev.off()
