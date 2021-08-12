@@ -15,7 +15,7 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/color_pal.rds
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/taliaRgeneral/R/theme_pubs.rds")
 #download.file(githubURL, c("color_vector.rds","theme_pubs.rds"), method="curl")
 
-# The goal of this script is to take a phyloseq object and a list of microbes and to assess the occupancy-abundance relationships
+# The goal of this script is to take a phyloseq object and to compare abundance between soil and capsella and A. thaliana
 #########################################
 # Functions
 #########################################
@@ -28,18 +28,24 @@ per_site <- function(GP, seq, comp1="between", comp2="capsella", comp3="soil"){
     ath1 = prune_taxa(c(seq), ath1)
     ath1 = make_replicate(ath1)
     fin1 = cbind(sample_data(ath1), otu_table(ath1))
+    #hm = fin1$Host_Species == "Soil"
+    #fin1$Used_for == hm
     fin1 = reshape2::dcast(fin1, Site_ID ~ rep, value.var = eval(seq))
   }
   if(comp2 == "capsella"){
-    ath2 = subset_samples(GP, Used_for == "M")
+    ath2 = subset_samples(GP, Host_Species == "Cap")
     ath2 = prune_taxa(c(seq), ath2)
     fin2 = cbind(sample_data(ath2), otu_table(ath2))
+    hm = fin2$Host_Species == "Cap"
+    fin2$Used_for = hm
     fin2 = reshape2::dcast(fin2, Site_ID ~ Host_Species, mean, value.value = eval(seq))
   }
   if(comp3 == "soil"){
-    ath3 = subset_samples(GP, Host_Species != "Cap")
+    ath3 = subset_samples(GP, Host_Species == "Soil")
     ath3 = prune_taxa(c(seq), ath3)
     fin3 = cbind(sample_data(ath3), otu_table(ath3))
+    hm = fin3$Host_Species == "Soil"
+    fin3$Used_for = hm
     fin3 = reshape2::dcast(fin3, Site_ID ~ Used_for, mean, value.var = eval(seq))
   }
   
@@ -140,7 +146,7 @@ ath_lm <- data.frame(t(apply((ath_all), 2,
 ath_cap <- data.frame(t(apply((ath_all), 2, 
                               function(x) run_lm(x, "rep1", "Cap", colname="capsella" ))) )
 ath_soil <- data.frame(t(apply((ath_all), 2, 
-                               function(x) run_lm(x, "rep1", "SOIL", colname="soil" ))))
+                               function(x) run_lm(x, "rep1", "TRUE", colname="soil" ))))
 ath_lm_all <- cbind(ath_lm, ath_cap, ath_soil)
 
 colnames(ath_lm_all) <- c("pval_rep", "R2_rep", "pval_cap", "R2_cap", "pval_soil", "R2_soil")
@@ -183,7 +189,7 @@ ath_lm_cap <- ath_lm#filter(ath_lm, !is.na(pval_capsella))
 ath_lm_cap$fdr_cap <- p.adjust(ath_lm_cap$pval_capsella)
 
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/circos_r2_ASVs.pdf", useDingbats = FALSE, fonts = "ArialMT")
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/circos_r2_ASVs.pdf", useDingbats = FALSE, family = "ArialMT")
 p3
 dev.off()
 

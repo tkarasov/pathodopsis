@@ -243,10 +243,9 @@ sigtabgen_soil$sig[sigtabgen_soil$sig==FALSE] = 0.25
 sigtabgen_soil2 <- subset(sigtabgen_soil, !is.na(Genus))
 
 diff_soil_non_soil <- 
-  ggplot(sigtabgen_soil2, aes(x = Genus, y = logFC, color = Phylum)) + geom_point() + 
-  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d() + 
-  theme(legend.position="bottom") +
-  geom_hline(yintercept=0, linetype="dashed", color = "red")
+  ggplot(sigtabgen_soil2, aes(x = Genus, y = logFC, color = Phylum))  + geom_point(size=3, aes(alpha = sig)) + 
+  theme(axis.text.x = element_text(angle = -90, hjust = 0, vjust = 0.5)) + scale_color_viridis_d() + theme(legend.position="bottom") +
+  geom_hline(yintercept=0, linetype="dashed", color = "red") 
 
 
 # #######################################################################
@@ -303,7 +302,7 @@ grobs <- ggplotGrob(diff_cap_ath)$grobs
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/diff_abundance_soil_capsella.pdf", height = 12, width = 15,
-    useDingbats = FALSE, font = "ArialMT")
+    useDingbats = FALSE, family =  "ArialMT")
 
 plot_grid(diff_soil_non_soil + ylab("logFC(Plant/Soil)") +
 	  theme(legend.position = "NULL"), 
@@ -331,7 +330,7 @@ cpm[which(cpm$Species=="0"),]$Species = "Other Brassicaceae"
 cpm.melt <- melt(cpm, id = "Species")
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/spec_OTU_diff_abundance_soil_capsella.pdf",  width = 7, height = 3.5,
-    useDingbats = FALSE, font = "ArialMT")
+    useDingbats = FALSE, family = "ArialMT")
 ggplot(data = cpm.melt, aes(x = Species, y = 2^value/10000, col = Species)) +
   geom_jitter(cex = 1.5, alpha = 0.5, width = 0.2, key_glyph = rectangle_key_glyph(fill = color)) +
   stat_summary(fun.ymin=median, fun.ymax=median, fun.y=median, geom="crossbar") +
@@ -357,20 +356,20 @@ GP_Burkholderia <- subset_taxa(GP_at15_all, Family == "Burkholderiaceae")
 # Show phylogeny 
 ####################################################################################
 p.pseud = plot_tree(GP_Pseud, 
-                    size = "abundance", plot.margin = 0.5, ladderize="left", color = "Species")+
+                    size = "abundance", plot.margin = 0.5, ladderize="left")+
   scale_color_viridis_d() + ggtitle("Pseudomonas")
 
 #+ coord_polar(theta="y")
 
 p.sping = plot_tree(GP_Sphing, 
-                    size = "abundance", plot.margin = 0.5, ladderize="left", color = "Species") +
+                    size = "abundance", plot.margin = 0.5, ladderize="left") +
   scale_color_viridis_d() + ggtitle("Sphingomonas")
 
 p.burk = plot_tree(GP_Burkholderia,
-                   size = "abundance", plot.margin = 0.5, ladderize="left", color = "Species")+
+                   size = "abundance", plot.margin = 0.5, ladderize="left")+
   scale_color_viridis_d() + ggtitle("Burkholderiaceae")
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/genus_level_phyl_abund.pdf", uuseDingbats = FALSE, fonts = "ArialMT", width = 12, height =12)
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/genus_level_phyl_abund.pdf", useDingbats = FALSE, family = "ArialMT", width = 12, height =12)
 plot_grid(p.pseud, p.sping, p.burk, nrow = 1)
 dev.off()
 

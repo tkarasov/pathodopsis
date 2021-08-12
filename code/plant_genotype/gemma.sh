@@ -1,3 +1,9 @@
+###### THis script is meant to calculate the 
+
+
+
+
+
 # remove mitochondra. This works
 vcftools --gzvcf /ebio/abt6_projects9/pathodopsis_HpA/host/pathodopsis_Microbiome/postVcf/poolsGVCF.filtered_snps_final.PASS.bi.cleaned.maf0_02.vcf.gz \
 	 --not-chr mit --not-chr chlo --out poolsGVCF.filtered_snps_final.PASS.bi.cleaned.maf0_02_no_mit_no_chlo.vcf --recode 
@@ -34,6 +40,16 @@ gemma -vc 2 -n 1 -p /ebio/abt6_projects9/pathodopsis_microbiomes/data/phenotype2
 gemma -vc 2 -n 1 -p /ebio/abt6_projects9/pathodopsis_microbiomes/data/phenotype2.txt -k \
  /ebio/abt6_projects9/pathodopsis_HpA/host/pathodopsis_Microbiome/poolsGVCF.filtered_snps_final.PASS.bi.cleaned.maf0_02_no_mit_no_chlo.vcf.TK.cXX.txt \
  -o plink_king_output_var 
+
+
+######Work on 08/05/2021 with Gautam's new matrix
+# run gemma (with genotyping rate of 70% get a h2 of 39%) 
+poolsGVCF.filtered_snps_final.PASS.bi.cleaned.maf0_02_no_mit_no_chlo.vcf.TK.reheader.allChrs.oEAs_bgl.vcf.gz
+gemma -vc 2 -n 1 -p /ebio/abt6_projects9/pathodopsis_microbiomes/data/phenotype2.txt -k \
+ /ebio/abt6_projects9/pathodopsis_HpA/host/pathodopsis_Microbiome/poolsGVCF.filtered_snps_final.PASS.bi.cleaned.maf0_02_no_mit_no_chlo.vcf.TK.reheader.allChrs.oEAs_bgl.vcf.gz.cXX.txt \
+-o plink_rel_output_var_impute
+
+
 
 
 

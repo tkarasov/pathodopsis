@@ -169,7 +169,7 @@ exp4 <-  ((MDS$eig) / sum(MDS$eig))[2]*100
 MDS_plot_kmeans <- 
   ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
   geom_point(aes(col=as.factor(clusters$cluster)), cex = 3, alpha = 0.5) +
-  scale_colour_manual(name = "Cluster", values = c('#d95f02', '#1b9e77')) +
+  scale_colour_manual(name = "Cluster", values = c( '#1b9e77', '#d95f02')) +
   theme_bw() +
   xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
   ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
@@ -187,7 +187,7 @@ MDS_plot_kmeans <-
 MDS_plot_hclust <- 
   ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
   geom_point(aes(col=as.factor(cl_members)), cex = 2.5, alpha = 0.5) +
-  scale_colour_brewer(name = "Cluster", palette = c('#d95f02', '#1b9e77')) +
+  scale_colour_brewer(name = "Cluster", palette = c( '#1b9e77', '#d95f02')) +
   theme_bw() +
   xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
   ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
@@ -299,7 +299,7 @@ myvar_point_kmeans <-base_europe_df +
   geom_jitter(data = my.df, 
               aes(coords.x1, coords.x2, colour = as.factor(myvar)), 
               width = .5, cex = 1.5, alpha = 0.5) +
-  scale_colour_manual(name = "Cluster", values = c('#d95f02', '#1b9e77')) +
+  scale_colour_manual(name = "Cluster", values = c('#1b9e77', '#d95f02' )) +
   scale_y_continuous(expand = c(0,0), limits = c(ymin_plot, ymax_plot)) +
   scale_x_continuous(expand = c(0,0), limits = c(xmin_plot, xmax_plot)) +
   theme_opts + 

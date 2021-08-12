@@ -29,7 +29,7 @@ seqtab.nochim = readRDS(paste(output_direc,"/seqtab_final.rds", sep="/"))
 
 taxa = readRDS(paste(output_direc,"/tax_final.rds", sep="/"))
 
-taxa = addSpecies(taxa, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/silva_species_assignment_v132.fa.gz")
+# taxa = addSpecies(taxa, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database/silva_species_assignment_v132.fa.gz")
 
 #######################################################################
 # Data is read in, now we want to subset it properly to rename the controls 
@@ -98,7 +98,13 @@ rm(dna)
 # Now filter mitochondria and taxa that are never observed with 50 reads in a sample
 #######################################################################
 mito = colnames(otu_table(GP))[which(tax_table(GP)[,5] != "Mitochondria")]
+chloro = colnames(otu_table(GP))[which(tax_table(GP)[,4] != "Chloroplast")]
+cyano = colnames(otu_table(GP))[which(tax_table(GP)[,2] != "Cyanobacteria")]
+bac = colnames(otu_table(GP))[which(tax_table(GP)[,1] == "Bacteria")]
 GP = prune_taxa(mito, GP)
+GP = prune_taxa(chloro, GP)
+GP = prune_taxa(bac, GP)
+GP = prune_taxa(cyano, GP)
 flist    <- filterfun(kOverA(1, 50))
 GP50 = filter_taxa(GP, flist, TRUE )
 

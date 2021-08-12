@@ -47,11 +47,11 @@ rownames(kemen_metadata) <- kemen_metadata$Run
 ####################################
 metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv",
                       header=T, sep="\t", fill =TRUE)
-new_metadata <- data.frame(sample = rownames(st.all))
-samps <- as.character(new_metadata$sample)
-names(samps) <- c(samps)
-new_metadata$ours <-startsWith(samps, "PA")
-new_metadata$kemen <- startsWith(samps, "SRR")
+# new_metadata <- data.frame(sample = rownames(st.all))
+# samps <- as.character(new_metadata$sample)
+# names(samps) <- c(samps)
+# new_metadata$ours <-startsWith(samps, "PA")
+# new_metadata$kemen <- startsWith(samps, "SRR")
 keep = data.frame(OTU_clim$refseq)[,1]
 
 ####################################
@@ -62,8 +62,10 @@ st.phyo <- rarefy_even_depth(st.phylo, sample.size = 1000, rngseed = 4)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
 plant_phyl <- phyloseq(otu_table(plant_clim$otu_table, taxa_are_rows = TRUE), sample_data(plant_clim$clim_data))
-fin.kemen <- prune_taxa(keep, st.phyo)
+fin.kemen <- phyloseq::prune_taxa(keep, st.phyo)
 fin.ours <- prune_taxa(colnames(otu_table(fin.kemen)), plant_phyl)
+
+# This is still too many ASVs (more ASVs than samples)
 
 ####################################
 # And Let's plot the MDS with the clusters
@@ -208,8 +210,8 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_kemen_our
     font = "ArialMT", width = 3.5, height  = 3)
 FC_kemen <- ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
   geom_point() +
-  xlab("log2(Fold Change Between Seasons)") +
-  ylab("log2(Fold Change Between Clusters 1 and 2") +
+  xlab("log2(FC Seasons)") +
+  ylab("log2(FC Clusters)") +
   theme_bw() +
   scale_color_viridis_d()+
   geom_hline(yintercept = 0, lty="dashed")+
@@ -224,11 +226,12 @@ FC_kemen
  
 dev.off()
 
-kmeans <- readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_plot_kmeans.rds")
+kmeans <- MDS_plot_kmeans #readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_plot_kmeans.rds")
 kmeans_map <- readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kmeans_map.rds")
 all_MDS<- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_all.rds")
 thal_cap <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/thal_cap_mds.rds" )
 
+poop <- plot_grid(all_MDS, thal_cap)
 p1 <- plot_grid( all_MDS + theme(legend.position = "none"), thal_cap + theme(legend.position = "none"),
                  kmeans, FC_kemen + xlab("log2(FC Seasons") + ylab("log2(FC Clusters"), align = 'hv', ncol = 2)
 
@@ -237,14 +240,16 @@ fig2 <- plot_grid(p1, p2,
           #proj, FC_kemen, 
           align = 'hv', nrow = 2)
   
-pdf(fig2,"/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fig2_all.pdf", useDingbats = FALSE, 
-    font = "ArialMT", width = 3.5)
+# pdf(fig2,"/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fig2_all.pdf", useDingbats = FALSE, 
+#    font = "ArialMT", width = 3.5)
 
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_comparisons_fig2.pdf", useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3.5/2)
 plot_grid(proj, FC_kemen)
 dev.off()
+
+
 ####################################
 # Seasonal Fluctuations of Kemen microbiome
 ####################################

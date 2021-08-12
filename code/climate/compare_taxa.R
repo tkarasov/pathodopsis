@@ -146,7 +146,7 @@ plant_otu <- phyloseq(sample_data(samp_data),
                       phy_tree = plant_clim$phy_tree, 
                       refseq = plant_clim$refseq,
                       tax_table = plant_clim$tax_table)
-
+otu_table(plant_otu)<-otu_table(plant_otu)/rowSums(otu_table(plant_otu))
 # Choose some North and South
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP1000.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50.rds")
@@ -154,18 +154,92 @@ load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/OTUtab_GP50
 set.seed(4)
 north = which(sample_data(plant_otu)$cluster==2)
 south = which(sample_data(plant_otu)$cluster==1)
-n20 <- sample_data(plant_otu)$Plant_ID[sample(north, 25)]
-s20 <- sample_data(plant_otu)$Plant_ID[sample(south, 25)]
+n20 <- sample_data(plant_otu)$Sequence_ID[sample(north, 50)]
+s20 <- sample_data(plant_otu)$Sequence_ID[sample(south, 50)]
 n_s <- as.factor(c(as.character(n20), as.character(s20)))
-sub_sample <- subset_samples(GP1000, samples.out %in% n_s)
-sample_data(sub_sample)$cluster <- sample_data(subset_samples(plant_otu, Sequence_ID  %in% n_s))$cluster
+sub_sample <- subset_samples(plant_otu, Sequence_ID %in% n_s)
 
+#alpha order
+hm = rank(table(tax_table(plant_otu)[,3]))
+# sample_data(sub_sample)$cluster <- sample_data(subset_samples(plant_otu, Sequence_ID  %in% n_s))$cluster
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/temp.pdf",
-    useDingbats = FALSE, font = "ArialMT")
-plot_bar(sub_sample, fill="Phylum" ) +
+my_plot_bar = function (physeq, x = "Sample", y = "Abundance", fill = NULL, title = NULL, 
+                        facet_grid = NULL) {
+  mdf = psmelt(physeq)
+  p = ggplot(mdf, aes_string(x = x, y = y, fill = fill))
+  p = p + geom_bar(stat = "identity", position = "stack")
+  p = p + theme(axis.text.x = element_text(angle = -90, hjust = 0))
+  if (!is.null(facet_grid)) {
+    p <- p + facet_grid(facet_grid)
+  }
+  if (!is.null(title)) {
+    p <- p + ggtitle(title)
+  }
+  return(p)
+}
+
+#pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/temp.pdf",
+#    useDingbats = FALSE, font = "ArialMT")
+set.seed(4)
+the_bar <- my_plot_bar(sub_sample, fill="Class" ) +
   facet_grid(~cluster, scale="free_x", drop=TRUE) + 
-  scale_color_manual(c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744", "#AA4455"))
+  scale_fill_manual(values = 
+                      sample(c("#ada77c","#4477AA", "#77AADD", "#117777", "#44AAAA", "#77CCCC", 
+                        "#117744", "#44AA77","#114477","#88CCAA", "#777711", "#AAAA44", 
+                        "#DDDD77", "#774411", "#AA7744", "#DDAA77", "#771122","#DD7788", 
+                        "darkgoldenrod1", "#771155", "#AA4488", "#CC99BB","#AA7744", "#AA4455"), size = 21, replace = FALSE))
 
 
+# dev.off()
+
+
+#################
+# Merge at different phylogenetic levels
+#################
+plant_otu_g <- tax_glom(plant_otu, "Genus")
+plant_otu_f <- tax_glom(plant_otu, "Family")
+plant_otu_o <- tax_glom(plant_otu, "Order")
+plant_otu_c <- tax_glom(plant_otu, "Class")
+plant_otu_p <- tax_glom(plant_otu, "Phylum")
+
+MDS_plot <- function(phyloseq, annotateText){
+  MDS <- sqrt(otu_table(phyloseq)) %>% dist() %>% cmdscale(eig = TRUE,  k = (dim(otu_table(phyloseq))[1]-1))
+  MDS.points <- data.frame(MDS$points)
+  colnames(MDS.points)[c(1:2)] = c("MDS1", "MDS2")
+  exp3 <-  ((MDS$eig) / sum(MDS$eig))[1]*100
+  exp4 <-  ((MDS$eig) / sum(MDS$eig))[2]*100
+  MDS_plot_kmeans <- 
+  ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
+  geom_point(aes(col=as.factor(sample_data(phyloseq)$cluster)), cex = 3, alpha = 0.5) +
+  scale_colour_manual(name = "Cluster", values = c( '#1b9e77', '#d95f02')) +
+  theme_bw() +
+  xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
+  ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
+  geom_hline(yintercept=0, linetype="dashed", color = "grey70") +
+  geom_vline(xintercept=0, linetype="dashed", color = "grey70") +
+  theme(
+    #legend.justification=c(0,0), 
+    #   legend.position=c(.7,.9),
+    #    legend.title = element_blank(),
+    #    legend.text.align = 0,
+        legend.position = "none",
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        #legend.box.background = element_rect(colour = "black")
+  ) +
+    geom_text(aes(x=Inf,y=Inf,hjust=1,vjust=1,label=annotateText))
+  return(MDS_plot_kmeans)
+
+}
+asv <- MDS_plot(plant_otu, "Phylotype")
+g <-MDS_plot(plant_otu_g, "Genus")
+f <- MDS_plot(plant_otu_f, "Family")
+o <- MDS_plot(plant_otu_o, "Order")
+c <- MDS_plot(plant_otu_c, "Class")
+p <- MDS_plot(plant_otu_p, "Phylum")
+phyl <- plot_grid(asv, g, f, o, c, p)
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/phylogeny_MDS.pdf",
+    useDingbats = FALSE, font = "ArialMT", width = 7, height = 7)
+plot_grid(phyl, the_bar, nrow = 2)
 dev.off()
