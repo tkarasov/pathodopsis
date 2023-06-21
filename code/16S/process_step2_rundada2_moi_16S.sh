@@ -25,16 +25,12 @@ amp_general="/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/code/a
 
 #output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all
 
-output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
+output_direc=/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads
 
 silva=/ebio/abt6_projects9/pathodopsis_microbiomes/data/taxonomical_database
 
 #mkdir /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
-#THe following speps which are commented out were run exactly once to merge the soil and other 16S files
-#cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_all/all_runs/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
-
-#cp /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/soil_16S_ITS/run174_16S_9_2019_soil_16S/demult_python/* /ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S_soil_phyllo_fin
 
 cd $output_direc
 
