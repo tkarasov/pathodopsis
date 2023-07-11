@@ -82,11 +82,9 @@ psotu2veg <- function(physeq) {
 
 
 # We cannot reasonably test teh effect of genotype given that there is low replication (109 genotypes and 171 samples from Moi's experiment that pass the filter of enough reads)
-# instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. 
+# instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. It's not clear to me what the zone variable is telling us but let's see...
 
-
-
-
+#let's do deseq2 contrast:
 
 
 
@@ -107,9 +105,9 @@ x1 <- cbind(1, sqrt(otu_table(fin.ours)/1000)) # add intercept
 B <- solve(t(x1) %*% x1) %*% t(x1) %*% MDS_mine # Betas
 
 # Project kemen data into pcoa space 
-kemen2 <- cbind(1, (sqrt(otu_table(fin.kemen)/1000)))
-new_kemen <- data.frame(kemen2 %*% B)
-colnames(new_kemen) <- c("eig1", "eig2")
+moi2 <- cbind(1, (sqrt(otu_table(fin.moi)/1000)))
+new_moi <- data.frame(moi2 %*% B)
+colnames(new_moi) <- c("eig1", "eig2")
 new_ours <- data.frame(x1 %*% B)
 colnames(new_ours) <- c("eig1", "eig2")
 
@@ -140,7 +138,7 @@ MDS_plot_kmeans <-
         #legend.box.background = element_rect(colour = "black")
   )
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_pcoa.pdf",useDingbats = FALSE, 
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_pcoa.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
 proj <- MDS_plot_kmeans + 
   geom_point(data = new_kemen, aes(x=eig1, y=eig2,col = as.factor(sample_data(fin.kemen)$Season)), cex = 2) 
@@ -157,7 +155,7 @@ flat_pca <-data.frame(sqrt(all_otus/1000) %>% dist() %>% cmdscale())
 flat_pca$col <- "Pathodopsis"
 flat_pca[1:dim(otu_table(fin.kemen))[1],]$col <- "Kemen"
 flat_pca$Season <- "Spring"
-flat_pca[1:dim(otu_table(fin.kemen))[1],]$Season <- sample_data(fin.kemen)$Season
+flat_pca[1:dim(otu_table(fin.moi))[1],]$Season <- sample_data(fin.moi)$treatment
 
 # rename points
 all.points <- data.frame(run_pca$points)
@@ -167,7 +165,7 @@ colnames(all.points)[c(1:2)] = c("MDS1", "MDS2")
 exp3 <-  ((run_pca$eig) / sum(run_pca$eig))[1]*100
 exp4 <-  ((run_pca$eig) / sum(run_pca$eig))[2]*100
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_total_divided_pcoa.pdf",useDingbats = FALSE, 
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_total_divided_pcoa.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
 ggplot(data=flat_pca, aes(x=X1, y=X2, col=col)) +
   geom_point(data=flat_pca, aes(shape=Season), cex = 2) +
@@ -189,9 +187,9 @@ ggplot(data=flat_pca, aes(x=X1, y=X2, col=col)) +
 dev.off()
 
 ####################################
-# Placement as a reflection of season
+# Placement as a reflection of treatment
 ####################################
-all_kemen <- cbind(new_kemen, sample_data(fin.kemen))
+all_kemen <- cbind(new_moi, sample_data(fin.kemen))
 effect_1 <- lm(eig1 ~ Season + Year + lat_lon, data = all_kemen)
 effect_2 <- lm(eig2 ~ Season , data = all_kemen)
 
@@ -203,13 +201,13 @@ metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),]
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
 rownames(metadata2) <- metadata2$Sequence_ID
 
-subset_kemen <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
+subset_moi <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
 subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
 
-#Kemen
-phylo_kemen <- phyloseq(otu_table(subset_kemen, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
-diagdds.kemen = phyloseq_to_deseq2(phylo_kemen, ~Season)
-diagdds.kemen = DESeq(diagdds.kemen, test="Wald", fitType="parametric")
+#Moi
+phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
+diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~treatment)
+diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 
 #Mine
 plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
@@ -219,7 +217,7 @@ diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
 # Identify ASVs that differ in abundance between clusters 1 and 2
-results.kemen <- results(diagdds.kemen, name="Season_Winter_vs_Spring")
+results.kemen <- results(diagdds.moi, name="Treatment_drought_vs_water")
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
 # Identify how many of them change with the season
@@ -233,7 +231,7 @@ results_df$joint_pval <- results_df$joint_pval<0.05
 results_df <- results_df[which(is.na(results_df$gene)==FALSE),]
 
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_kemen_ours.pdf",useDingbats = FALSE, 
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_moi_ours.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
 FC_kemen <- ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
   geom_point() +
@@ -249,7 +247,7 @@ FC_kemen <- ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
         legend.text.align = 0,
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
-FC_kemen 
+FC_moi
  
 dev.off()
 
@@ -260,20 +258,20 @@ thal_cap <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_m
 
 poop <- plot_grid(all_MDS, thal_cap)
 p1 <- plot_grid( all_MDS + theme(legend.position = "none"), thal_cap + theme(legend.position = "none"),
-                 kmeans, FC_kemen + xlab("log2(FC Seasons") + ylab("log2(FC Clusters"), align = 'hv', ncol = 2)
+                 kmeans, FC_moi + xlab("log2(FC Seasons") + ylab("log2(FC Clusters"), align = 'hv', ncol = 2)
 
 p2 <- plot_grid(kmeans_map, proj, rel_widt = c(0.7, 0.3), align = 'hv', ncol =2)
 fig2 <- plot_grid(p1, p2,
-          #proj, FC_kemen, 
+          #proj, FC_moi, 
           align = 'hv', nrow = 2)
   
 # pdf(fig2,"/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/fig2_all.pdf", useDingbats = FALSE, 
 #    font = "ArialMT", width = 3.5)
 
 
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_comparisons_fig2.pdf", useDingbats = FALSE, 
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_comparisons_fig2.pdf", useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3.5/2)
-plot_grid(proj, FC_kemen)
+plot_grid(proj, FC_moi)
 dev.off()
 
 
