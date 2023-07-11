@@ -20,13 +20,19 @@ moi <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_read
 moi_tax <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/tax_final.rds")
 
 #basic manipulation of data
-kemen_metadata <- read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/Kemen_metadata_SraRunTable.txt", header=T)
-kemen_metadata <- separate(kemen_metadata,Collection_date, sep="-", into=c("Day", "Month", "Year"))
-kemen_metadata$Season <- NA
-kemen_metadata[which(kemen_metadata$Month=="Dec"),]$Season <-"Winter"
-kemen_metadata[which(kemen_metadata$Month!="Dec"),]$Season <-"Spring"
-rownames(kemen_metadata) <- kemen_metadata$Run
+moi_metadata <- read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/sample_info/meta_6_20_2024_karasov_moi_leaf_microbe_ids_mergedd.tsv", header=T, sep = "\t")
 
+#there are several NA rows in the metadata sheet. We need to get rid of these. Let's just delete them
+hm <- paste("samp_", moi_metadata$Sample_ID, sep ="")
+hm <- paste(hm, moi_metadata$tray, sep="_")
+hm <- paste(hm, moi_metadata$tray_position, sep = "_")
+hm <- paste(hm, moi_metadata$Actual_barcode, sep = "_")
+
+#find duplicate rows and delete one of them
+dup <- as.numeric(which(table(hm)>1))
+moi_metadata <- moi_metadata %>% filter(!row_number() %in% dup)
+hm <- hm[-c(dup)]
+rownames(moi_metadata) <- hm
 
 ####################################
 # Make phyloseq object of combined datasets
