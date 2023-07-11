@@ -6,6 +6,7 @@ library(tidyr)
 library(DESeq2)
 library(reshape2)
 library(cowplot)
+library(vegan)
 
 
 # This script takes the seqtabs from our whole experiment and the Carnegie experiment from Moi's lab in 2023 and looks for overlap  in ASV's
@@ -79,6 +80,9 @@ psotu2veg <- function(physeq) {
   return(as(OTU, "matrix"))
 }
 
+
+# We cannot reasonably test teh effect of genotype given that there is low replication (109 genotypes and 171 samples from Moi's experiment that pass the filter of enough reads)
+# instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. 
 
 
 
