@@ -27,12 +27,14 @@ hm <- paste("samp_", moi_metadata$Sample_ID, sep ="")
 hm <- paste(hm, moi_metadata$tray, sep="_")
 hm <- paste(hm, moi_metadata$tray_position, sep = "_")
 hm <- paste(hm, moi_metadata$Actual_barcode, sep = "_")
+moi_metadata$samp_rename <- hm 
 
 #find duplicate rows and delete one of them
-dup <- as.numeric(which(table(hm)>1))
-moi_metadata <- moi_metadata %>% filter(!row_number() %in% dup)
-hm <- hm[-c(dup)]
-rownames(moi_metadata) <- hm
+dup <- which(duplicated(moi_metadata$samp_rename))
+#'%!in%' <- function(x,y)!('%in%'(x,y))
+moi_metadata <- moi_metadata %>% filter(row_number() %!in% dup)
+#hm <- hm % filter( %!in% dup)
+rownames(moi_metadata) <- moi_metadata$samp_rename
 
 ####################################
 # Make phyloseq object of combined datasets
@@ -54,10 +56,39 @@ st.phyo <- rarefy_even_depth(st.phylo, sample.size = 1000, rngseed = 4)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
 plant_phyl <- phyloseq(otu_table(plant_clim$otu_table, taxa_are_rows = TRUE), sample_data(plant_clim$clim_data))
-fin.kemen <- phyloseq::prune_taxa(keep, st.phyo)
-fin.ours <- prune_taxa(colnames(otu_table(fin.kemen)), plant_phyl)
+fin.moi <- phyloseq::prune_taxa(keep, st.phyo)
+fin.ours <- prune_taxa(colnames(otu_table(fin.moi)), plant_phyl)
 
 # This is still too many ASVs (more ASVs than samples)
+
+####################################
+# Convert phyloseq to vegan
+####################################
+# convert the sample_data() within a phyloseq object to a vegan compatible data object
+pssd2veg <- function(physeq) {
+  sd <- sample_data(physeq)
+  return(as(sd,"data.frame"))
+}
+
+# convert the otu_table() within a phyloseq object to a vegan compatible data object
+psotu2veg <- function(physeq) {
+  OTU <- otu_table(physeq)
+  if (taxa_are_rows(OTU)) {
+    OTU <- t(OTU)
+  }
+  return(as(OTU, "matrix"))
+}
+
+
+
+
+
+
+
+
+
+
+
 
 ####################################
 # And Let's plot the MDS with the clusters
