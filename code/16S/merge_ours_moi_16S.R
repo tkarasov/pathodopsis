@@ -248,7 +248,45 @@ dev.off()
 ####################################
 pval_ours <- results.ours$padj
 pval_moi <- results.moi$padj
+#this didn't work well. How about the relationship between latitude and the Fold Change of the Moi associated SNPs
 
+keep_dat <- sample_data(my_total)
+keep_otu <- otu_table(my_total)
+#keep_otu <- keep_otu[which(keep_dat$Lat<45 & keep_dat$Lat>30),]
+                                                       
+asv_relation <- function(asv){
+  # rownames(keep_otu) <- keep_dat$id
+  model1 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$Lat)
+  model2 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$PDSI)
+  model3 <- lm(as.numeric(keep_otu[,asv]) ~ keep_dat[rownames(keep_otu),]$PDSI + keep_dat[rownames(keep_otu),]$Lat)
+  pval_lat <- summary(model1)$coefficients[2,4]
+  pval_pds <- summary(model2)$coefficients[2,4]
+  pval_lat_tog <- summary(model3)$coefficients[3,4]
+  pval_pds_tog <- summary(model3)$coefficients[2,4]
+  return(c(p.adjust(pval_lat, "BH"), p.adjust(pval_pds, "BH"), p.adjust(pval_lat_tog, "BH"), p.adjust(pval_pds_tog, "BH")))
+}
+N = length(colnames(keep_otu))
+otu_sig <- data.frame(pval_lat = numeric(N), 
+    pval_pds = numeric(N),
+    pds_tog = numeric(N),
+    lat_tog = numeric(N),
+    lat_corr = numeric(N))
+rownames(otu_sig) = colnames(keep_otu)
+
+for(asv in colnames(keep_otu)){
+  print(asv)
+  pvals <- asv_relation(asv)
+  otu_sig[asv,c(1:4)] = pvals
+  otu_sig[asv, 5] = cor.test(as.numeric(keep_otu[,asv]),  keep_dat[rownames(keep_otu),]$Lat)$estimate
+}
+
+
+# Now let's look at the otu_sig and the ASVs that are shared.
+keep_otu_sig <- otu_sig[rownames(results.moi),]
+                                                       
+                                                       
+
+                                                       
                                                        
                                                        
                                                        
