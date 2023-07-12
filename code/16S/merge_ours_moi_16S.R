@@ -243,6 +243,21 @@ FC_moi
  
 dev.off()
 
+####################################
+# Are the same SNPs different between clusters and between droughts. 154
+####################################
+pval_ours <- results.ours$padj
+pval_moi <- results.moi$padj
+
+                                                       
+                                                       
+                                                       
+                                                       
+
+
+
+                                                       
+
 kmeans <- MDS_plot_kmeans #readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_plot_kmeans.rds")
 kmeans_map <- readRDS( "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kmeans_map.rds")
 all_MDS<- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/MDS_all.rds")
