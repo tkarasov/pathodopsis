@@ -197,10 +197,8 @@ subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
 
 #Moi
 phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
-# The treatment variable has spaces. Need to replace.
-sample_data(phylo_moi)$treatment <- as.factor(sample_data(phylo_moi)$treatment)
-"Watered" <- sample_data(phylo_moi)$treatment[which(sample_data(phylo_moi)$treatment=="Daily med")]
-diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~treatment)
+
+diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment))
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 
 #Mine
@@ -211,7 +209,7 @@ diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
 # Identify ASVs that differ in abundance between clusters 1 and 2
-results.moi <- results(diagdds.moi, name="Treatment_drought_vs_water")
+results.moi <- results(diagdds.moi, name="treatment_Watered_vs_Drought")
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
 # Identify how many of them change with the treatment
