@@ -42,11 +42,6 @@ rownames(moi_metadata) <- moi_metadata$samp_rename
 ####################################
 metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv",
                       header=T, sep="\t", fill =TRUE)
-# new_metadata <- data.frame(sample = rownames(st.all))
-# samps <- as.character(new_metadata$sample)
-# names(samps) <- c(samps)
-# new_metadata$ours <-startsWith(samps, "PA")
-# new_metadata$kemen <- startsWith(samps, "SRR")
 keep = data.frame(OTU_clim$refseq)[,1]
 
 ####################################
@@ -88,10 +83,6 @@ psotu2veg <- function(physeq) {
 
 
 
-
-
-
-
 ####################################
 # And Let's plot the MDS with the clusters
 ####################################
@@ -104,7 +95,7 @@ MDS_mine_tot <- sqrt(otu_table(fin.ours)/1000) %>% dist() %>% cmdscale(eig = TRU
 x1 <- cbind(1, sqrt(otu_table(fin.ours)/1000)) # add intercept
 B <- solve(t(x1) %*% x1) %*% t(x1) %*% MDS_mine # Betas
 
-# Project kemen data into pcoa space 
+# Project moi data into pcoa space 
 moi2 <- cbind(1, (sqrt(otu_table(fin.moi)/1000)))
 new_moi <- data.frame(moi2 %*% B)
 colnames(new_moi) <- c("eig1", "eig2")
@@ -141,7 +132,7 @@ MDS_plot_kmeans <-
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_pcoa.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
 proj <- MDS_plot_kmeans + 
-  geom_point(data = new_kemen, aes(x=eig1, y=eig2,col = as.factor(sample_data(fin.kemen)$Season)), cex = 2) 
+  geom_point(data = new_moi, aes(x=eig1, y=eig2,col = as.factor(sample_data(fin.moi)$Season)), cex = 2) 
   #geom_point(data=MDS.points[as.character(germans$Sequence_ID),], aes(x=MDS1, y=MDS2))
   #geom_point(data = new_ours, aes(x=eig1, y=eig2) ) 
 dev.off()
@@ -149,11 +140,11 @@ dev.off()
 ####################################
 # pcoa of everything together
 ####################################
-all_otus = rbind(otu_table(fin.kemen), otu_table(fin.ours))
+all_otus = rbind(otu_table(fin.moi), otu_table(fin.ours))
 run_pca <- data.frame(sqrt(all_otus/1000)) %>% dist() %>% cmdscale(eig = TRUE,  k = 3)
 flat_pca <-data.frame(sqrt(all_otus/1000) %>% dist() %>% cmdscale())
 flat_pca$col <- "Pathodopsis"
-flat_pca[1:dim(otu_table(fin.kemen))[1],]$col <- "Kemen"
+flat_pca[1:dim(otu_table(fin.moi))[1],]$col <- "moi"
 flat_pca$Season <- "Spring"
 flat_pca[1:dim(otu_table(fin.moi))[1],]$Season <- sample_data(fin.moi)$treatment
 
@@ -189,13 +180,13 @@ dev.off()
 ####################################
 # Placement as a reflection of treatment
 ####################################
-all_kemen <- cbind(new_moi, sample_data(fin.kemen))
-effect_1 <- lm(eig1 ~ Season + Year + lat_lon, data = all_kemen)
-effect_2 <- lm(eig2 ~ Season , data = all_kemen)
+all_moi <- cbind(new_moi, sample_data(fin.moi))
+effect_1 <- lm(eig1 ~ Season + Year + lat_lon, data = all_moi)
+effect_2 <- lm(eig2 ~ Season , data = all_moi)
 
 
 ####################################
-# Differential expression of genes between season and by cluster
+# Differential expression of genes between treatments
 ####################################
 metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),] 
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
@@ -217,14 +208,14 @@ diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
 # Identify ASVs that differ in abundance between clusters 1 and 2
-results.kemen <- results(diagdds.moi, name="Treatment_drought_vs_water")
+results.moi <- results(diagdds.moi, name="Treatment_drought_vs_water")
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
-# Identify how many of them change with the season
+# Identify how many of them change with the treatment
 results_df <- data.frame(gene=results.ours@rownames, 
-                         kemen=results.kemen[results.ours@rownames,]$log2FoldChange,
+                         moi=results.moi[results.ours@rownames,]$log2FoldChange,
                          ours_1_3=results.ours[results.ours@rownames,]$log2FoldChange,
-                         pval_kemen=results.kemen[results.ours@rownames,]$padj,
+                         pval_moi=results.moi[results.ours@rownames,]$padj,
                          pval_ours=results.ours[results.ours@rownames,]$padj)
 results_df$joint_pval <- as.numeric(as.character(apply(results_df, 1, function(x) max(x[4:5]))))
 results_df$joint_pval <- results_df$joint_pval<0.05
@@ -233,7 +224,7 @@ results_df <- results_df[which(is.na(results_df$gene)==FALSE),]
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_moi_ours.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
-FC_kemen <- ggplot(data=results_df, aes(x=kemen, y=ours_1_3, col=joint_pval))+
+FC_moi <- ggplot(data=results_df, aes(x=moi, y=ours_1_3, col=joint_pval))+
   geom_point() +
   xlab("log2(FC Seasons)") +
   ylab("log2(FC Clusters)") +
@@ -274,57 +265,4 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_comparis
 plot_grid(proj, FC_moi)
 dev.off()
 
-
-####################################
-# Seasonal Fluctuations of Kemen microbiome
-####################################
-kemen_sig <- results_df %>% filter(pval_kemen<0.05) %>% select(gene) 
-ot <- data.frame(otu_table(phylo_kemen))
-phylo_sig <- apply(ot, 2, function(i)i/sum(i))
-phylo_sig <- data.frame(phylo_sig[, which(as.character(kemen_sig[,1])%in%colnames(otu_table(phylo_kemen)))])
-
-#Subset to 20
-phylo_sig <- phylo_sig[,1:10]
-
-#phylo_sig <- phylo_sig
-phylo_sig$Year <-as.numeric(as.character(sample_data(phylo_kemen)$Year))
-phylo_sig$Season <- sample_data(phylo_kemen)$Season
-
-
-
-phylo_sig[which(phylo_sig$Season=="Winter"),]$Season<-.12
-phylo_sig[which(phylo_sig$Season=="Spring"),]$Season<-.04
-phylo_sig$Date <- as.factor(as.character(paste(phylo_sig$Year, phylo_sig$Season, sep="")))
-melted_sig <- melt(phylo_sig,id.vars="Date")
-melted_sig <- melted_sig%>%filter(variable!="Year")%>%filter(variable!="Season")
-melted_sig$value <- as.numeric(as.character(melted_sig$value))
-
-df2 <- aggregate(value ~ Date + variable, melted_sig, mean)
-
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/kemen_sig_fluctuations.pdf",useDingbats = FALSE, 
-    font = "ArialMT", width = 3.5, height  = 3)
-ggplot(df2, aes(x=Date, y=as.numeric(as.character(value)), group = variable, col = variable))+
-  geom_line() +
-  scale_color_viridis_d() +
-  theme_bw() +
-  ylab("Relative Abundance") +
-  theme(legend.position="none",
-        legend.title = element_blank(),
-        legend.text.align = 0,
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank())
-dev.off()
-
-####################################
-# Count per quadrant
-####################################
-pos_pos <- dim(results_df %>% filter(kemen >= 0) %>% filter(ours_1_3 >=0))[1]
-pos_neg <- dim(results_df %>% filter(kemen >= 0) %>% filter(ours_1_3 <0))[1]
-neg_pos <- dim(results_df %>% filter(kemen < 0) %>% filter(ours_1_3 >=0))[1]
-neg_neg <- dim(results_df %>% filter(kemen < 0) %>% filter(ours_1_3 < 0))[1]
-tot <- pos_pos + pos_neg + neg_pos + neg_neg
-sub.freqs <- c(pos_pos, pos_neg, neg_pos, neg_neg)
-
-# Calculate the multinomial probability confidence intervals (alpha = 0.05, two-sided)
-multinom_prob <- MultinomCI(sub.freqs, conf.level = 0.99, method = "wald")
 
