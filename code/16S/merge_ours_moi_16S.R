@@ -21,7 +21,7 @@ moi <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_read
 moi_tax <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/tax_final.rds")
 
 #basic manipulation of data
-moi_metadata <- read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/sample_info/meta_6_20_2024_karasov_moi_leaf_microbe_ids_mergedd.tsv", header=T, sep = "\t")
+moi_metadata <- read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/sample_info/meta_7_11_2023_karasov_moi_leaf_microbe_ids_merged.tsv", header=T, sep = "\t")
 
 #there are several NA rows in the metadata sheet. We need to get rid of these. Let's just delete them
 hm <- paste("samp_", moi_metadata$Sample_ID, sep ="")
@@ -197,6 +197,9 @@ subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
 
 #Moi
 phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
+# The treatment variable has spaces. Need to replace.
+sample_data(phylo_moi)$treatment <- as.factor(sample_data(phylo_moi)$treatment)
+"Watered" <- sample_data(phylo_moi)$treatment[which(sample_data(phylo_moi)$treatment=="Daily med")]
 diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~treatment)
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 
