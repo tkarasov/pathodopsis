@@ -43,18 +43,22 @@ rownames(moi_metadata) <- moi_metadata$samp_rename
 ####################################
 metadata = read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/pathodopsis_git/data/all_metagenome_metadata_2_2020_reads.tsv",
                       header=T, sep="\t", fill =TRUE)
+#keep the ASVs specified in OTU_clim
 keep = data.frame(OTU_clim$refseq)[,1]
+
+#here are the seqid names
 keep_seqid = OTU_clim$refseq@ranges@NAMES
 ####################################
-# Subset to 1000 reads and make final table
+# Subset Moi's data to 1000 reads and make final table
 ####################################
 st.phylo <- phyloseq(otu_table(moi, taxa_are_rows = FALSE), sample_data(moi_metadata))
 st.phyo <- rarefy_even_depth(st.phylo, sample.size = 1000, rngseed = 4)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
-plant_phyl <- phyloseq(as.matrix(otu_table(plant_clim$otu_table, taxa_are_rows = FALSE)), astax_table(plant_clim$tax_table), sample_data(plant_clim$clim_data))
+plant_phyl <- phyloseq(otu_table(t(plant_clim$otu_table), taxa_are_rows = TRUE), as.matrix(tax_table(plant_clim$tax_table), sample_data(plant_clim$clim_data))
 fin.moi <- phyloseq::prune_taxa(keep, st.phyo)
 fin.ours <- prune_taxa(keep, plant_phyl)
+colnames(otu_table(fin.ours)) <- keep_seqid
 
 #now add on seq names
 write_phyloseq(fin.moi,type ="OTU", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/moi_phylo")
