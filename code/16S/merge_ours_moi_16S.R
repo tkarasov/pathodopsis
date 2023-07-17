@@ -298,8 +298,11 @@ for(asv in colnames(keep_otu)){
 # Now let's look at the otu_sig and the ASVs that are shared.
 keep_otu_sig <- otu_sig[rownames(results.moi),]
                                                        
-                                                       
+# for some reason only about 10% of the ASVs are correlated in lm with latitude. Why so low?                                                       
+#> table(otu_sig[,2]<0.01)
 
+#FALSE  TRUE 
+#  141    13 
                                                        
                                                        
                                                        
