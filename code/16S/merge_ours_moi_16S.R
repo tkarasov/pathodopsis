@@ -33,7 +33,7 @@ moi_metadata$samp_rename <- hm
 
 #find duplicate rows and delete one of them
 dup <- which(duplicated(moi_metadata$samp_rename))
-#'%!in%' <- function(x,y)!('%in%'(x,y))
+'%!in%' <- function(x,y)!('%in%'(x,y))
 moi_metadata <- moi_metadata %>% filter(row_number() %!in% dup)
 #hm <- hm % filter( %!in% dup)
 rownames(moi_metadata) <- moi_metadata$samp_rename
@@ -59,7 +59,7 @@ plant_phyl <- phyloseq(otu_table(t(plant_clim$otu_table), taxa_are_rows = TRUE),
 tax_table(plant_phyl) <- tax_table(matrix(plant_clim$tax_table))
 fin.moi <- phyloseq::prune_taxa(keep, st.phyo)
 fin.ours <- prune_taxa(keep, plant_phyl)
-colnames(otu_table(fin.ours)) <- keep_seqid
+rownames(otu_table(fin.ours)) <- keep_seqid
 
 #now add on seq names
 write_phyloseq(fin.moi,type ="OTU", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/moi_phylo")
@@ -206,6 +206,8 @@ rownames(metadata2) <- metadata2$Sequence_ID
 
 subset_moi <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
 subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
+subset_mine <- subset_mine[which(rownames(subset_mine) %in% plant_clim$clim_data$Sequence_ID),]
+
 
 #Moi's phyloseq object
 phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
@@ -260,7 +262,7 @@ dev.off()
 ####################################
 pval_ours <- results.ours$padj
 pval_moi <- results.moi$padj
-#this didn't work well. How about the relationship between latitude and the Fold Change of the Moi associated SNPs
+#this didn't work well. How about the relationship between latitude and the Fold Change of the Moi associated SNPs. Actually it worked better than I thought...
 
 keep_dat <- sample_data(my_total)
 keep_otu <- otu_table(my_total)
