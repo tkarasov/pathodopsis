@@ -207,13 +207,13 @@ rownames(metadata2) <- metadata2$Sequence_ID
 subset_moi <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
 subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
 
-#Moi
+#Moi's phyloseq object
 phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
 
 diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment))
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 
-#Mine
+#My all data phyloseq object
 plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
 my_total <-phyloseq(otu_table(subset_mine, taxa_are_rows = FALSE) + 1, 
                     tax_table(my_phylo_tax), sample_data(plant_clim$clim_data))
