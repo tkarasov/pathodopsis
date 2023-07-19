@@ -79,6 +79,7 @@ write_phyloseq(fin.ours,type ="METADATA", path="/ebio/abt6_projects9/pathodopsis
 
 ####################################
 # Differential abundance  of ASVs between treatments
+#https://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#wald-test-individual-steps
 ####################################
 metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),] 
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
@@ -97,7 +98,7 @@ diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 diagdds.moi_prs = phyloseq_to_deseq2(phylo_moi, ~1+(PRS))
 diagdds.moi_prs = DESeq(diagdds.moi_prs, test="Wald", fitType="parametric")
 diagdds.moi_joint = phyloseq_to_deseq2(phylo_moi, ~1+(PRS) + (treatment.x) + PRS:treatment.x)
-diagdds.moi_joint = DESeq(diagdds.moi_joint, test="Wald", fitType="parametric")
+diagdds.moi_joint = DESeq(diagdds.moi_joint, test="LRT", fitType="parametric", reduced=~1)
 
 #My all data phyloseq object
 plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
