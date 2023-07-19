@@ -189,13 +189,6 @@ ggplot(data=flat_pca, aes(x=X1, y=X2, col=col)) +
   )
 dev.off()
 
-####################################
-# Placement as a reflection of treatment
-####################################
-all_moi <- cbind(new_moi, sample_data(fin.moi))
-effect_1 <- lm(eig1 ~ Season + Year + lat_lon, data = all_moi)
-effect_2 <- lm(eig2 ~ Season , data = all_moi)
-
 
 ####################################
 # Differential expression of genes between treatments
@@ -214,6 +207,10 @@ phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_dat
 
 diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment.x))
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
+diagdds.moi_prs = phyloseq_to_deseq2(phylo_moi, ~1+(PRS))
+diagdds.moi_prs = DESeq(diagdds.moi_prs, test="Wald", fitType="parametric")
+diagdds.moi_joint = phyloseq_to_deseq2(phylo_moi, ~1+(PRS) + (treatment.x))
+diagdds.moi_joint = DESeq(diagdds.moi_joint, test="Wald", fitType="parametric")
 
 #My all data phyloseq object
 plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
@@ -224,6 +221,8 @@ diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
 # Identify ASVs that differ in abundance between clusters 1 and 2
 results.moi <- results(diagdds.moi, name="treatment.x_Watered_vs_Drought")
+results.moi_prs <- results(diagdds.moi_prs, name="PRS_lps_vs_hps")
+
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
 # Identify how many of them change with the treatment
@@ -231,8 +230,9 @@ results_df <- data.frame(gene=results.ours@rownames,
                          moi=results.moi[results.ours@rownames,]$log2FoldChange,
                          ours_1_3=results.ours[results.ours@rownames,]$log2FoldChange,
                          pval_moi=results.moi[results.ours@rownames,]$padj,
+                         pval_moi_prs=results.moi_prs[results.ours@rownames,]$padj,
                          pval_ours=results.ours[results.ours@rownames,]$padj)
-results_df$joint_pval <- as.numeric(as.character(apply(results_df, 1, function(x) max(x[4:5]))))
+results_df$joint_pval <- as.numeric(as.character(apply(results_df, 1, function(x) max(x[3:5]))))
 results_df$joint_pval <- results_df$joint_pval<0.05
 results_df <- results_df[which(is.na(results_df$gene)==FALSE),]
 
