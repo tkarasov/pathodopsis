@@ -22,7 +22,7 @@ moi <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_read
 moi_tax <- readRDS("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/tax_final.rds")
 
 #basic manipulation of data
-moi_metadata <- read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/sample_info/meta_7_11_2023_karasov_moi_leaf_microbe_ids_merged.tsv", header=T, sep = "\t")
+moi_metadata <- read.csv("/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/sample_info/meta_7_19_2023_karasov_moi_leaf_microbe_ids_merged_drought.tsv", header=T, sep = "\t")
 
 #there are several NA rows in the metadata sheet. We need to get rid of these. Let's just delete them
 hm <- paste("samp_", moi_metadata$Sample_ID, sep ="")
@@ -158,7 +158,7 @@ flat_pca <-data.frame(sqrt(all_otus/1000) %>% dist() %>% cmdscale())
 flat_pca$col <- "Pathodopsis"
 flat_pca[1:dim(otu_table(fin.moi))[1],]$col <- "moi"
 flat_pca$Season <- "Spring"
-flat_pca[1:dim(otu_table(fin.moi))[1],]$Season <- sample_data(fin.moi)$treatment
+flat_pca[1:dim(otu_table(fin.moi))[1],]$Season <- sample_data(fin.moi)$treatment.x
 
 # rename points
 all.points <- data.frame(run_pca$points)
@@ -212,7 +212,7 @@ subset_mine <- subset_mine[which(rownames(subset_mine) %in% plant_clim$clim_data
 #Moi's phyloseq object
 phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
 
-diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment))
+diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment.x))
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 
 #My all data phyloseq object
@@ -223,7 +223,7 @@ diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
 # Identify ASVs that differ in abundance between clusters 1 and 2
-results.moi <- results(diagdds.moi, name="treatment_Watered_vs_Drought")
+results.moi <- results(diagdds.moi, name="treatment.x_Watered_vs_Drought")
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
 # Identify how many of them change with the treatment
