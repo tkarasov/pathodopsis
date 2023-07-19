@@ -69,24 +69,6 @@ write_phyloseq(fin.ours,type ="OTU", path="/ebio/abt6_projects9/pathodopsis_micr
 write_phyloseq(fin.ours,type ="TAXONOMY", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/ours_phylo")
 write_phyloseq(fin.ours,type ="METADATA", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/ours_phylo/")
 
-####################################
-# Convert phyloseq to vegan
-####################################
-# convert the sample_data() within a phyloseq object to a vegan compatible data object
-pssd2veg <- function(physeq) {
-  sd <- sample_data(physeq)
-  return(as(sd,"data.frame"))
-}
-
-# convert the otu_table() within a phyloseq object to a vegan compatible data object
-psotu2veg <- function(physeq) {
-  OTU <- otu_table(physeq)
-  if (taxa_are_rows(OTU)) {
-    OTU <- t(OTU)
-  }
-  return(as(OTU, "matrix"))
-}
-
 
 # We cannot reasonably test teh effect of genotype given that there is low replication (109 genotypes and 171 samples from Moi's experiment that pass the filter of enough reads)
 # instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. It's not clear to me what the zone variable is telling us but let's see...
@@ -96,102 +78,7 @@ psotu2veg <- function(physeq) {
 
 
 ####################################
-# And Let's plot the MDS with the clusters
-####################################
-rop <-rowSums(otu_table(fin.ours))
-val = 1000
-MDS_mine <- sqrt(otu_table(fin.ours)/1000) %>% dist() %>% cmdscale() #(eig = TRUE,  k = 3) #)dim(plant_clim$otu_table)[1]-1))
-MDS_mine_tot <- sqrt(otu_table(fin.ours)/1000) %>% dist() %>% cmdscale(eig = TRUE,  k = 3)
-
-# Solve for betas in pcoa
-x1 <- cbind(1, sqrt(otu_table(fin.ours)/1000)) # add intercept
-B <- solve(t(x1) %*% x1) %*% t(x1) %*% MDS_mine # Betas
-
-# Project moi data into pcoa space 
-moi2 <- cbind(1, (sqrt(otu_table(fin.moi)/1000)))
-new_moi <- data.frame(moi2 %*% B)
-colnames(new_moi) <- c("eig1", "eig2")
-new_ours <- data.frame(x1 %*% B)
-colnames(new_ours) <- c("eig1", "eig2")
-
-# rename points
-MDS.points <- data.frame(MDS_mine_tot$points)
-colnames(MDS.points)[c(1:2)] = c("MDS1", "MDS2")
-
-#calculate percentage explained
-exp3 <-  ((MDS_mine_tot$eig) / sum(MDS_mine_tot$eig))[1]*100
-exp4 <-  ((MDS_mine_tot$eig) / sum(MDS_mine_tot$eig))[2]*100
-
-# plot basic kmeans
-MDS_plot_kmeans <- 
-  ggplot(data = MDS.points, aes(x=MDS1, y=MDS2)) +
-  geom_point(aes(col=as.factor(sample_data(fin.ours)$cluster)), cex = 3, alpha = 0.1) +
-  scale_colour_manual(name = "Cluster", values = c("#D95F02", "#1B9E77", "#E31A1C", "#1F78B4")) +
-  theme_bw() +
-  xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
-  ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
-  geom_hline(yintercept=0, linetype="dashed", color = "grey70") +
-  geom_vline(xintercept=0, linetype="dashed", color = "grey70") +
-  theme(legend.justification=c(0,0), 
-        legend.position=c(.7,.8),
-        legend.title = element_blank(),
-        legend.text.align = 0,
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        #legend.box.background = element_rect(colour = "black")
-  )
-
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_pcoa.pdf",useDingbats = FALSE, 
-    font = "ArialMT", width = 3.5, height  = 3)
-proj <- MDS_plot_kmeans + 
-  geom_point(data = new_moi, aes(x=eig1, y=eig2,col = as.factor(sample_data(fin.moi)$Season)), cex = 2) 
-  #geom_point(data=MDS.points[as.character(germans$Sequence_ID),], aes(x=MDS1, y=MDS2))
-  #geom_point(data = new_ours, aes(x=eig1, y=eig2) ) 
-dev.off()
-
-####################################
-# pcoa of everything together
-####################################
-all_otus = rbind(otu_table(fin.moi), otu_table(fin.ours))
-run_pca <- data.frame(sqrt(all_otus/1000)) %>% dist() %>% cmdscale(eig = TRUE,  k = 3)
-flat_pca <-data.frame(sqrt(all_otus/1000) %>% dist() %>% cmdscale())
-flat_pca$col <- "Pathodopsis"
-flat_pca[1:dim(otu_table(fin.moi))[1],]$col <- "moi"
-flat_pca$Season <- "Spring"
-flat_pca[1:dim(otu_table(fin.moi))[1],]$Season <- sample_data(fin.moi)$treatment.x
-
-# rename points
-all.points <- data.frame(run_pca$points)
-colnames(all.points)[c(1:2)] = c("MDS1", "MDS2")
-
-#calculate percentage explained
-exp3 <-  ((run_pca$eig) / sum(run_pca$eig))[1]*100
-exp4 <-  ((run_pca$eig) / sum(run_pca$eig))[2]*100
-
-pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_total_divided_pcoa.pdf",useDingbats = FALSE, 
-    font = "ArialMT", width = 3.5, height  = 3)
-ggplot(data=flat_pca, aes(x=X1, y=X2, col=col)) +
-  geom_point(data=flat_pca, aes(shape=Season), cex = 2) +
-  #scale_colour_brewer(name = "Cluster", palette = "Dark2") +
-  theme_bw() +
-  scale_color_viridis_d() + 
-  xlab(paste(paste("MDS1 (", round(exp3), sep=""),"%)",sep="")) +
-  ylab(paste(paste("MDS2 (", round(exp4), sep=""),"%)",sep="")) +
-  #geom_hline(yintercept=0, linetype="dashed", color = "grey70") +
-  #geom_vline(xintercept=0, linetype="dashed", color = "grey70") +
-  theme(legend.justification=c(0,0), 
-        legend.position=c(.7,.8),
-        legend.title = element_blank(),
-        legend.text.align = 0,
-        panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        #legend.box.background = element_rect(colour = "black")
-  )
-dev.off()
-
-
-####################################
-# Differential expression of genes between treatments
+# Differential abundance  of ASVs between treatments
 ####################################
 metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),] 
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
@@ -209,7 +96,7 @@ diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment.x))
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 diagdds.moi_prs = phyloseq_to_deseq2(phylo_moi, ~1+(PRS))
 diagdds.moi_prs = DESeq(diagdds.moi_prs, test="Wald", fitType="parametric")
-diagdds.moi_joint = phyloseq_to_deseq2(phylo_moi, ~1+(PRS) + (treatment.x))
+diagdds.moi_joint = phyloseq_to_deseq2(phylo_moi, ~1+(PRS) + (treatment.x) + PRS:treatment.x)
 diagdds.moi_joint = DESeq(diagdds.moi_joint, test="Wald", fitType="parametric")
 
 #My all data phyloseq object
@@ -222,7 +109,7 @@ diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 # Identify ASVs that differ in abundance between clusters 1 and 2
 results.moi <- results(diagdds.moi, name="treatment.x_Watered_vs_Drought")
 results.moi_prs <- results(diagdds.moi_prs, name="PRS_lps_vs_hps")
-
+results.moi_joint <- results(diagdds.moi_joint, name="PRSlps.treatment.xWatered") #20% of the ASVs (17/85) had a different response to drought depending on which genotype they were. 
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
 
 # Identify how many of them change with the treatment
