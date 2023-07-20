@@ -8,6 +8,7 @@ library(reshape2)
 library(cowplot)
 library(vegan)
 library(microbiome)
+library(PathoStat)
 
 
 # This script takes the seqtabs from our whole experiment and the Carnegie experiment from Moi's lab in 2023 and looks for overlap  in ASV's
@@ -136,8 +137,64 @@ drought_effect <- (drought<0.01) # 6/25 were differentially abundant in drought
 genotype_effect <- (genotype<0.01) # 1/25 had a genotype effect alone and was found different between clusters. 5/26 had an interactions term that was shared with significant cluster. 7/26 had a significant interaction term.  
                                                        
 # 25 ASVs had values for the pvalue effect of genotype group and the difference between clusters. 
-                                                       
 
+#I need to try a randomization of prs. 
+phylo_moi_random <- phylo_moi
+set.seed(44452962) 
+prs_ran <- sample(c(rep("hps", 167), rep("lps", 210)))
+sample_data(phylo_moi_random)$PRS <- prs_ran
+diagdds.moi_resamp = phyloseq_to_deseq2(phylo_moi_random, ~1+(PRS))
+diagdds.moi_resamp = DESeq(diagdds.moi_resamp, test="LRT", reduced = ~1, fitType="parametric")                                         
+results.moi_resamp <- results(diagdds.moi_resamp, name="PRS_lps_vs_hps")
+table(results.moi_resamp$padj<0.01)
+
+#this is really worrisome, because frequently about 1/4 of the genes are significant when PRS is permuted.  This blog suggests that many of these ASVs might not adhere to the negative binomial well. Instead, let's try the wilcoxan rank sum
+# https://towardsdatascience.com/deseq2-and-edger-should-no-longer-be-the-default-choice-for-large-sample-differential-gene-8fdf008deae9
+dge = phyloseq_to_edgeR(phylo_moi, ~1+(PRS) + (treatment.x) + PRS:treatment.x)
+# Perform binary test
+et = exactTest(dge)
+# Extract values from test results
+tt = topTags(et, n=nrow(dge$table), adjust.method="BH", sort.by="PValue")
+res = tt@.Data[[1]]
+alpha = 0.001
+sigtab = res[(res$FDR < alpha), ]
+sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(kosticB)[rownames(sigtab), ], "matrix"))
+dim(sigtab)
+
+
+                                          
+# read data
+readCount <- read.table(file = "examples/examples.countMatrix.tsv", header = T, row.names = 1, stringsAsFactors = F, check.names = F)
+conditions <- read.table(file = "examples/examples.conditions.tsv", header = F)
+conditions <- factor(t(conditions))
+# edgeR TMM normalize
+y <- DGEList(counts = readCount, group = conditions)
+## Remove rows conssitently have zero or very low counts
+keep <- filterByExpr(y)
+y <- y[keep, keep.lib.sizes = FALSE]
+## Perform TMM normalization and convert to CPM (Counts Per Million)
+y <- calcNormFactors(y, method = "TMM")
+count_norm <- cpm(y)
+count_norm <- as.data.frame(count_norm)
+# Run the Wilcoxon rank-sum test for each gene
+pvalues <- sapply(1:nrow(count_norm), function(i){
+data <- cbind.data.frame(gene = as.numeric(t(count_norm[i,])), conditions)
+p <- wilcox.test(gene~conditions, data)$p.value
+return(p)
+})
+fdr <- p.adjust(pvalues, method = "fdr")
+# Calculate the fold-change for each gene
+conditionsLevel <- levels(conditions)
+dataCon1 <- count_norm[,c(which(conditions==conditionsLevel[1]))]
+dataCon2 <- count_norm[,c(which(conditions==conditionsLevel[2]))]
+foldChanges <- log2(rowMeans(dataCon2)/rowMeans(dataCon1))
+# Output results based on the FDR threshold 0.05
+outRst <- data.frame(log2foldChange = foldChanges, pValues = pvalues, FDR = fdr)
+rownames(outRst) <- rownames(count_norm)
+outRst <- na.omit(outRst)
+fdrThres <- 0.05
+write.table(outRst[outRst$FDR<fdrThres,], file = "examples/examples.WilcoxonTest.rst.tsv", sep="\t", quote = F, row.names = T, col.names = T)
+                                          
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_moi_ours.pdf",useDingbats = FALSE, 
     font = "ArialMT", width = 3.5, height  = 3)
