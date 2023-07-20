@@ -50,15 +50,17 @@ keep = data.frame(OTU_clim$refseq)[,1]
 #here are the seqid names
 keep_seqid = OTU_clim$refseq@ranges@NAMES
 ####################################
-# Subset Moi's data to 1000 reads and make final table
+# Subset Moi's data to 10000 reads and make final table
 ####################################
 st.phylo <- phyloseq(otu_table(moi, taxa_are_rows = FALSE), sample_data(moi_metadata))
-st.phyo <- rarefy_even_depth(st.phylo, sample.size = 1000, rngseed = 4)
+st.phyo <-   prune_samples(sample_sums(st.phylo) >= 10000, st.phylo)
+st.phylo <- st.phyo 
+#rarefy_even_depth(st.phylo, sample.size = 10000, rngseed = 4)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
 plant_phyl <- phyloseq(otu_table(t(plant_clim$otu_table), taxa_are_rows = TRUE),  sample_data(plant_clim$clim_data))
 tax_table(plant_phyl) <- tax_table(matrix(plant_clim$tax_table))
-fin.moi <- phyloseq::prune_taxa(keep, st.phyo)
+fin.moi <- phyloseq::prune_taxa(keep, st.phylo)
 fin.ours <- prune_taxa(keep, plant_phyl)
 rownames(otu_table(fin.ours)) <- keep_seqid
 
@@ -141,12 +143,22 @@ genotype_effect <- (genotype<0.01) # 1/25 had a genotype effect alone and was fo
 #I need to try a randomization of prs. 
 phylo_moi_random <- phylo_moi
 set.seed(44452962) 
-prs_ran <- sample(c(rep("hps", 167), rep("lps", 210)))
+prs_ran <- sample(c(rep("hps", 54), rep("lps", 54)))
 sample_data(phylo_moi_random)$PRS <- prs_ran
 diagdds.moi_resamp = phyloseq_to_deseq2(phylo_moi_random, ~1+(PRS))
-diagdds.moi_resamp = DESeq(diagdds.moi_resamp, test="LRT", reduced = ~1, fitType="parametric")                                         
+diagdds.moi_resamp = DESeq(diagdds.moi_resamp,test="Wald", fitType="parametric")           
+
+diagdds.moi_score = phyloseq_to_deseq2(phylo_moi, ~1+(PRS))
+diagdds.moi_score = DESeq(diagdds.moi_score,test="Wald", fitType="parametric")         
 results.moi_resamp <- results(diagdds.moi_resamp, name="PRS_lps_vs_hps")
+results.moi_score <- results(diagdds.moi_score, name="PRS_lps_vs_hps")
 table(results.moi_resamp$padj<0.01)
+table(results.moi_score$padj<0.01)
+                                          
+# wtf...
+
+
+                                          
 
 #this is really worrisome, because frequently about 1/4 of the genes are significant when PRS is permuted.  This blog suggests that many of these ASVs might not adhere to the negative binomial well. Instead, let's try the wilcoxan rank sum
 # https://towardsdatascience.com/deseq2-and-edger-should-no-longer-be-the-default-choice-for-large-sample-differential-gene-8fdf008deae9
