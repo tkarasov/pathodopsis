@@ -98,7 +98,8 @@ diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
 diagdds.moi_prs = phyloseq_to_deseq2(phylo_moi, ~1+(PRS))
 diagdds.moi_prs = DESeq(diagdds.moi_prs, test="Wald", fitType="parametric")
 diagdds.moi_joint = phyloseq_to_deseq2(phylo_moi, ~1+(PRS) + (treatment.x) + PRS:treatment.x)
-diagdds.moi_joint = DESeq(diagdds.moi_joint, test="LRT", fitType="parametric", reduced=~1)
+#diagdds.moi_joint = DESeq(diagdds.moi_joint, test="LRT", fitType="parametric", reduced=~1)
+diagdds.moi_joint = DESeq(diagdds.moi_joint, test="Wald", fitType="parametric")
 
 #My all data phyloseq object
 plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
@@ -110,19 +111,32 @@ diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 # Identify ASVs that differ in abundance between clusters 1 and 2
 results.moi <- results(diagdds.moi, name="treatment.x_Watered_vs_Drought")
 results.moi_prs <- results(diagdds.moi_prs, name="PRS_lps_vs_hps")
-results.moi_joint <- results(diagdds.moi_joint, name="PRSlps.treatment.xWatered") #20% of the ASVs (17/85) had a different response to drought depending on which genotype they were. 
+#results.moi_joint <- results(diagdds.moi_joint, name="PRSlps.treatment.xWatered") #20% of the ASVs (17/85) had a different response to drought depending on which genotype they were. 
+results.moi_joint <- results(diagdds.moi_joint, contrast = list("PRS_lps_vs_hps", "PRSlps.treatment.xWatered")) # 21/103 had a significant contrast in this. 
 results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
+
+# What percentage of the ASVs that are significant between clusters have a significant interaction term
+
 
 # Identify how many of them change with the treatment
 results_df <- data.frame(gene=results.ours@rownames, 
                          moi=results.moi[results.ours@rownames,]$log2FoldChange,
                          ours_1_3=results.ours[results.ours@rownames,]$log2FoldChange,
-                         pval_moi=results.moi[results.ours@rownames,]$padj,
+                         pval_treat = results.moi[results.ours@rownames,]$padj,
+                         pval_joint=results.moi_joint[results.ours@rownames,]$padj,
                          pval_moi_prs=results.moi_prs[results.ours@rownames,]$padj,
                          pval_ours=results.ours[results.ours@rownames,]$padj)
-results_df$joint_pval <- as.numeric(as.character(apply(results_df, 1, function(x) max(x[3:5]))))
+results_df$joint_pval <- as.numeric(as.character(apply(results_df, 1, function(x) max(x[c(4,5)]))))
 results_df$joint_pval <- results_df$joint_pval<0.05
 results_df <- results_df[which(is.na(results_df$gene)==FALSE),]
+result_limited <- results_df[,c("pval_treat", "pval_joint", "pval_ours", "pval_moi_prs")]
+drought <- as.numeric(as.character(apply(result_limited, 1, function(x) max(x[c(1,3)]))))
+genotype <- as.numeric(as.character(apply(result_limited, 1, function(x) max(x[c(2,3)]))))
+drought_effect <- (drought<0.01) # 6/25 were differentially abundant in drought
+genotype_effect <- (genotype<0.01) # 1/25 had a genotype effect alone and was found different between clusters. 5/26 had an interactions term that was shared with significant cluster. 7/26 had a significant interaction term.  
+                                                       
+# 25 ASVs had values for the pvalue effect of genotype group and the difference between clusters. 
+                                                       
 
 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/FC_moi_ours.pdf",useDingbats = FALSE, 
