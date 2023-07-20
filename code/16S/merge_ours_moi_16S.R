@@ -162,7 +162,7 @@ table(results.moi_score$padj<0.01)
 
 #this is really worrisome, because frequently about 1/4 of the genes are significant when PRS is permuted.  This blog suggests that many of these ASVs might not adhere to the negative binomial well. Instead, let's try the wilcoxan rank sum
 # https://towardsdatascience.com/deseq2-and-edger-should-no-longer-be-the-default-choice-for-large-sample-differential-gene-8fdf008deae9
-dge = phyloseq_to_edgeR(phylo_moi, ~1+(PRS) + (treatment.x) + PRS:treatment.x)
+dge = phyloseq_to_edgeR(phylo_moi, "PRS")
 # Perform binary test
 et = exactTest(dge)
 # Extract values from test results
@@ -176,14 +176,14 @@ dim(sigtab)
 
                                           
 # read data
-readCount <- read.table(file = "examples/examples.countMatrix.tsv", header = T, row.names = 1, stringsAsFactors = F, check.names = F)
-conditions <- read.table(file = "examples/examples.conditions.tsv", header = F)
+readCount <- t(otu_table(phylo_moi))
+conditions <- sample_data(phylo_moi)[,c("treatment.x")]
 conditions <- factor(t(conditions))
 # edgeR TMM normalize
 y <- DGEList(counts = readCount, group = conditions)
 ## Remove rows conssitently have zero or very low counts
-keep <- filterByExpr(y)
-y <- y[keep, keep.lib.sizes = FALSE]
+#keep <- filterByExpr(y)
+#y <- y[keep, keep.lib.sizes = FALSE]
 ## Perform TMM normalization and convert to CPM (Counts Per Million)
 y <- calcNormFactors(y, method = "TMM")
 count_norm <- cpm(y)
