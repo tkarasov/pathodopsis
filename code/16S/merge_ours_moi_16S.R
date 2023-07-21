@@ -53,15 +53,18 @@ keep_seqid = OTU_clim$refseq@ranges@NAMES
 # Subset Moi's data to 10000 reads and make final table
 ####################################
 st.phylo <- phyloseq(otu_table(moi, taxa_are_rows = FALSE), sample_data(moi_metadata))
-st.phyo <-   prune_samples(sample_sums(st.phylo) >= 10000, st.phylo)
-st.phylo <- st.phyo 
+st.phyo <-   prune_samples(sample_sums(st.phylo) >= 1000, st.phylo)
+# prune also for those that are found in at least 50% of samples
+who <- genefilter_sample(st.phyo, filterfun_sample(function(x) x > 5), A=0.1*nsamples(st.phyo))
+who_keep <-names(which(who==TRUE))
+st.phylo <- prune_taxa( who_keep, st.phyo)
 #rarefy_even_depth(st.phylo, sample.size = 10000, rngseed = 4)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
 plant_phyl <- phyloseq(otu_table(t(plant_clim$otu_table), taxa_are_rows = TRUE),  sample_data(plant_clim$clim_data))
 tax_table(plant_phyl) <- tax_table(matrix(plant_clim$tax_table))
 fin.moi <- phyloseq::prune_taxa(keep, st.phylo)
-fin.ours <- prune_taxa(keep, plant_phyl)
+fin.ours <- prune_taxa(keep, plant_phyl) #plant_phyl has 570 taxa and 454 samples
 rownames(otu_table(fin.ours)) <- keep_seqid
 
 #now add on seq names
@@ -76,9 +79,6 @@ write_phyloseq(fin.ours,type ="METADATA", path="/ebio/abt6_projects9/pathodopsis
 # We cannot reasonably test teh effect of genotype given that there is low replication (109 genotypes and 171 samples from Moi's experiment that pass the filter of enough reads)
 # instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. It's not clear to me what the zone variable is telling us but let's see...
 
-#let's do deseq2 contrast:
-
-
 
 ####################################
 # Differential abundance  of ASVs between treatments
@@ -88,6 +88,7 @@ metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),]
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
 rownames(metadata2) <- metadata2$Sequence_ID
 
+# subset data 
 subset_moi <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
 subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
 subset_mine <- subset_mine[which(rownames(subset_mine) %in% plant_clim$clim_data$Sequence_ID),]
@@ -108,6 +109,7 @@ diagdds.moi_joint = DESeq(diagdds.moi_joint, test="Wald", fitType="parametric")
 plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
 my_total <-phyloseq(otu_table(subset_mine, taxa_are_rows = FALSE) + 1, 
                     tax_table(my_phylo_tax), sample_data(plant_clim$clim_data))
+#sample_data(my_total)$cluster <- sample(sample_data(my_total)$cluster)
 diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
 
@@ -116,7 +118,8 @@ results.moi <- results(diagdds.moi, name="treatment.x_Watered_vs_Drought")
 results.moi_prs <- results(diagdds.moi_prs, name="PRS_lps_vs_hps")
 #results.moi_joint <- results(diagdds.moi_joint, name="PRSlps.treatment.xWatered") #20% of the ASVs (17/85) had a different response to drought depending on which genotype they were. 
 results.moi_joint <- results(diagdds.moi_joint, contrast = list("PRS_lps_vs_hps", "PRSlps.treatment.xWatered")) # 21/103 had a significant contrast in this. 
-results.ours <- results(diagdds.ours, name="cluster_2_vs_1")
+results.ours <- results(diagdds.ours, name="cluster_2_vs_1") #table(results.ours$padj<0.01) 66 FALSE, 88 TRUE. When this is done with randomized cluster assignments get 107 True 47 False
+
 
 # What percentage of the ASVs that are significant between clusters have a significant interaction term
 
@@ -173,17 +176,21 @@ sigtab = res[(res$FDR < alpha), ]
 sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(kosticB)[rownames(sigtab), ], "matrix"))
 dim(sigtab)
 
+#Deseq suffers from exaxtly the same problems
 
                                           
 # read data
+ #otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
 readCount <- t(otu_table(phylo_moi))
-conditions <- sample_data(phylo_moi)[,c("treatment.x")]
+conditions <- sample_data(phylo_moi)[,c("PRS")]
 conditions <- factor(t(conditions))
 # edgeR TMM normalize
 y <- DGEList(counts = readCount, group = conditions)
 ## Remove rows conssitently have zero or very low counts
-#keep <- filterByExpr(y)
-#y <- y[keep, keep.lib.sizes = FALSE]
+#keep <- which(y$samples$lib.size>=500)#
+keep <- filterByExpr(y, min.count = 5000 )
+#y <- y[keep, ]
+y <- y[keep,keep.lib.sizes = FALSE]
 ## Perform TMM normalization and convert to CPM (Counts Per Million)
 y <- calcNormFactors(y, method = "TMM")
 count_norm <- cpm(y)
