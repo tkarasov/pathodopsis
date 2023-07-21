@@ -49,36 +49,28 @@ keep = data.frame(OTU_clim$refseq)[,1]
 
 #here are the seqid names
 keep_seqid = OTU_clim$refseq@ranges@NAMES
+
 ####################################
-# Subset Moi's data to 10000 reads and make final table
+# Subset Moi's data to samples with at least 1000 reads and ASVs found in at least 10% of samples
 ####################################
 st.phylo <- phyloseq(otu_table(moi, taxa_are_rows = FALSE), sample_data(moi_metadata))
 st.phyo <-   prune_samples(sample_sums(st.phylo) >= 1000, st.phylo)
-# prune also for those that are found in at least 50% of samples
+
+# prune also for those that are found in at least 10% of samples
 who <- genefilter_sample(st.phyo, filterfun_sample(function(x) x > 5), A=0.1*nsamples(st.phyo))
 who_keep <-names(which(who==TRUE))
 st.phylo <- prune_taxa( who_keep, st.phyo)
-#rarefy_even_depth(st.phylo, sample.size = 10000, rngseed = 4)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
 plant_phyl <- phyloseq(otu_table(t(plant_clim$otu_table), taxa_are_rows = TRUE),  sample_data(plant_clim$clim_data))
 tax_table(plant_phyl) <- tax_table(matrix(plant_clim$tax_table))
-fin.moi <- phyloseq::prune_taxa(keep, st.phylo)
-fin.ours <- prune_taxa(keep, plant_phyl) #plant_phyl has 570 taxa and 454 samples
-rownames(otu_table(fin.ours)) <- keep_seqid
-
-#now add on seq names
-write_phyloseq(fin.moi,type ="OTU", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/moi_phylo")
-write_phyloseq(fin.moi,type ="TAXONOMY", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/moi_phylo")
-write_phyloseq(fin.moi,type ="METADATA", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/moi_phylo")
-write_phyloseq(fin.ours,type ="OTU", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/ours_phylo")
-write_phyloseq(fin.ours,type ="TAXONOMY", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/ours_phylo")
-write_phyloseq(fin.ours,type ="METADATA", path="/ebio/abt6_projects9/pathodopsis_microbiomes/data/processed_reads/16S/16S_moi_5_2023/processed_reads/ours_phylo/")
-
+fin.moi <- phyloseq::prune_taxa(keep, st.phylo) #
+the_common_set <- colnames(otu_table(fin.moi))
+fin.ours <- prune_taxa(the_common_set, plant_phyl) #plant_phyl has 570 taxa and 454 samples
+#rownames(otu_table(fin.ours)) <- keep_seqid
 
 # We cannot reasonably test teh effect of genotype given that there is low replication (109 genotypes and 171 samples from Moi's experiment that pass the filter of enough reads)
 # instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. It's not clear to me what the zone variable is telling us but let's see...
-
 
 ####################################
 # Differential abundance  of ASVs between treatments
@@ -88,27 +80,30 @@ metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),]
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
 rownames(metadata2) <- metadata2$Sequence_ID
 
-# subset data 
-subset_moi <- otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
-subset_mine <- my_phylo[,which(colnames(otu_table(st.phylo)) %in% keep)]
-subset_mine <- subset_mine[which(rownames(subset_mine) %in% plant_clim$clim_data$Sequence_ID),]
-
-
+# Get subsetted otu table 
+subset_moi <- otu_table(fin.moi) #otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
+subset_mine <- otu_table(fin.ours)
+                                                   
 #Moi's phyloseq object
 phylo_moi <- phyloseq(otu_table(subset_moi, taxa_are_rows = FALSE)+1, sample_data(st.phylo))
 
+#this model just tests drought treatment
 diagdds.moi = phyloseq_to_deseq2(phylo_moi, ~1+(treatment.x))
 diagdds.moi = DESeq(diagdds.moi, test="Wald", fitType="parametric")
+
+#this model just tests PRS
 diagdds.moi_prs = phyloseq_to_deseq2(phylo_moi, ~1+(PRS))
 diagdds.moi_prs = DESeq(diagdds.moi_prs, test="Wald", fitType="parametric")
+
+#this model test treatment and PRS and interaction
 diagdds.moi_joint = phyloseq_to_deseq2(phylo_moi, ~1+(PRS) + (treatment.x) + PRS:treatment.x)
 #diagdds.moi_joint = DESeq(diagdds.moi_joint, test="LRT", fitType="parametric", reduced=~1)
 diagdds.moi_joint = DESeq(diagdds.moi_joint, test="Wald", fitType="parametric")
 
 #My all data phyloseq object
-plant_clim$clim_data$cluster <- as.factor(plant_clim$clim_data$cluster)
+sample_data(fin.ours)$cluster <- as.factor(sample_data(fin.ours)$cluster)
 my_total <-phyloseq(otu_table(subset_mine, taxa_are_rows = FALSE) + 1, 
-                    tax_table(my_phylo_tax), sample_data(plant_clim$clim_data))
+                   sample_data(fin.ours))
 #sample_data(my_total)$cluster <- sample(sample_data(my_total)$cluster)
 diagdds.ours = phyloseq_to_deseq2(my_total, ~1+(cluster))
 diagdds.ours = DESeq(diagdds.ours, test="Wald", fitType="parametric")
@@ -118,8 +113,8 @@ results.moi <- results(diagdds.moi, name="treatment.x_Watered_vs_Drought")
 results.moi_prs <- results(diagdds.moi_prs, name="PRS_lps_vs_hps")
 #results.moi_joint <- results(diagdds.moi_joint, name="PRSlps.treatment.xWatered") #20% of the ASVs (17/85) had a different response to drought depending on which genotype they were. 
 results.moi_joint <- results(diagdds.moi_joint, contrast = list("PRS_lps_vs_hps", "PRSlps.treatment.xWatered")) # 21/103 had a significant contrast in this. 
-results.ours <- results(diagdds.ours, name="cluster_2_vs_1") #table(results.ours$padj<0.01) 66 FALSE, 88 TRUE. When this is done with randomized cluster assignments get 107 True 47 False
-
+results.ours <- results(diagdds.ours, name="cluster_2_vs_1") #table(results.ours$padj<0.01) 66 FALSE, 88 TRUE. When this is done with randomized cluster assignments get 107 True 47 False. After filtering to the main 20 ASVs this is 2 sig/20.
+# 17 significantly different, 3 not for the Europe dataset. When it is randomized it is 16 No, 4 yes. I suppose I need an empirical estimate of the enrichment in differences. 
 
 # What percentage of the ASVs that are significant between clusters have a significant interaction term
 
@@ -132,21 +127,12 @@ results_df <- data.frame(gene=results.ours@rownames,
                          pval_joint=results.moi_joint[results.ours@rownames,]$padj,
                          pval_moi_prs=results.moi_prs[results.ours@rownames,]$padj,
                          pval_ours=results.ours[results.ours@rownames,]$padj)
-results_df$joint_pval <- as.numeric(as.character(apply(results_df, 1, function(x) max(x[c(4,5)]))))
-results_df$joint_pval <- results_df$joint_pval<0.05
-results_df <- results_df[which(is.na(results_df$gene)==FALSE),]
-result_limited <- results_df[,c("pval_treat", "pval_joint", "pval_ours", "pval_moi_prs")]
-drought <- as.numeric(as.character(apply(result_limited, 1, function(x) max(x[c(1,3)]))))
-genotype <- as.numeric(as.character(apply(result_limited, 1, function(x) max(x[c(2,3)]))))
-drought_effect <- (drought<0.01) # 6/25 were differentially abundant in drought
-genotype_effect <- (genotype<0.01) # 1/25 had a genotype effect alone and was found different between clusters. 5/26 had an interactions term that was shared with significant cluster. 7/26 had a significant interaction term.  
-                                                       
-# 25 ASVs had values for the pvalue effect of genotype group and the difference between clusters. 
+
 
 #I need to try a randomization of prs. 
 phylo_moi_random <- phylo_moi
 set.seed(44452962) 
-prs_ran <- sample(c(rep("hps", 54), rep("lps", 54)))
+prs_ran <- sample(sample_data(phylo_moi)$PRS)
 sample_data(phylo_moi_random)$PRS <- prs_ran
 diagdds.moi_resamp = phyloseq_to_deseq2(phylo_moi_random, ~1+(PRS))
 diagdds.moi_resamp = DESeq(diagdds.moi_resamp,test="Wald", fitType="parametric")           
@@ -157,12 +143,8 @@ results.moi_resamp <- results(diagdds.moi_resamp, name="PRS_lps_vs_hps")
 results.moi_score <- results(diagdds.moi_score, name="PRS_lps_vs_hps")
 table(results.moi_resamp$padj<0.01)
 table(results.moi_score$padj<0.01)
+# Okay, maybe we are making progress. 20 ASVs pass all of the filtering. Two are significant 
                                           
-# wtf...
-
-
-                                          
-
 #this is really worrisome, because frequently about 1/4 of the genes are significant when PRS is permuted.  This blog suggests that many of these ASVs might not adhere to the negative binomial well. Instead, let's try the wilcoxan rank sum
 # https://towardsdatascience.com/deseq2-and-edger-should-no-longer-be-the-default-choice-for-large-sample-differential-gene-8fdf008deae9
 dge = phyloseq_to_edgeR(phylo_moi, "PRS")
@@ -171,15 +153,12 @@ et = exactTest(dge)
 # Extract values from test results
 tt = topTags(et, n=nrow(dge$table), adjust.method="BH", sort.by="PValue")
 res = tt@.Data[[1]]
-alpha = 0.001
+alpha = 0.01
 sigtab = res[(res$FDR < alpha), ]
-sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(kosticB)[rownames(sigtab), ], "matrix"))
+#sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(kosticB)[rownames(sigtab), ], "matrix"))
 dim(sigtab)
-
-#Deseq suffers from exaxtly the same problems
-
                                           
-# read data
+# Let's try Wilcoxan test read data
  #otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
 readCount <- t(otu_table(phylo_moi))
 conditions <- sample_data(phylo_moi)[,c("PRS")]
