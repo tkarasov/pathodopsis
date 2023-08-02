@@ -145,7 +145,7 @@ table(results.moi_resamp$padj<0.01)
 table(results.moi_score$padj<0.01)
 # Okay, maybe we are making progress. 20 ASVs pass all of the filtering. Two are significant 
                                           
-#this is really worrisome, because frequently about 1/4 of the genes are significant when PRS is permuted.  This blog suggests that many of these ASVs might not adhere to the negative binomial well. Instead, let's try the wilcoxan rank sum
+#this analysis prior to filtering was really worrisome, because frequently about 1/4 of the genes were significant when PRS is permuted.  This blog suggests that many of these ASVs might not adhere to the negative binomial well. After filtering there were no significant ASVs in the permutation.
 # https://towardsdatascience.com/deseq2-and-edger-should-no-longer-be-the-default-choice-for-large-sample-differential-gene-8fdf008deae9
 dge = phyloseq_to_edgeR(phylo_moi, "PRS")
 # Perform binary test
@@ -153,7 +153,8 @@ et = exactTest(dge)
 # Extract values from test results
 tt = topTags(et, n=nrow(dge$table), adjust.method="BH", sort.by="PValue")
 res = tt@.Data[[1]]
-alpha = 0.01
+alpha = 0.01 res
+                                                   
 sigtab = res[(res$FDR < alpha), ]
 #sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(kosticB)[rownames(sigtab), ], "matrix"))
 dim(sigtab)
@@ -222,7 +223,7 @@ pval_moi <- results.moi$padj
 #this didn't work well. How about the relationship between latitude and the Fold Change of the Moi associated SNPs. Actually it worked better than I thought...
 
 keep_dat <- sample_data(my_total)
-keep_otu <- otu_table(my_total)
+keep_otu <- t(otu_table(my_total))
 #keep_otu <- keep_otu[which(keep_dat$Lat<45 & keep_dat$Lat>30),]
                                                        
 asv_relation <- function(asv){
