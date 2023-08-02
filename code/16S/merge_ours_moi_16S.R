@@ -121,7 +121,7 @@ results.ours <- results(diagdds.ours, name="cluster_2_vs_1") #table(results.ours
 
 # Identify how many of them change with the treatment
 results_df <- data.frame(gene=results.ours@rownames, 
-                         moi=results.moi[results.ours@rownames,]$log2FoldChange,
+                         moi=results.moi_prs[results.ours@rownames,]$log2FoldChange,
                          ours_1_3=results.ours[results.ours@rownames,]$log2FoldChange,
                          pval_treat = results.moi[results.ours@rownames,]$padj,
                          pval_joint=results.moi_joint[results.ours@rownames,]$padj,
@@ -129,7 +129,22 @@ results_df <- data.frame(gene=results.ours@rownames,
                          pval_ours=results.ours[results.ours@rownames,]$padj)
 
 
-#I need to try a randomization of prs. 
+# Now I want to put the taxonomy info on the 20 genes
+
+
+
+
+
+
+
+
+###############
+# Below code was used for sanity checkin
+###############                                                   
+
+
+                                                   
+####I need to try a randomization of prs. This next code is checking the legitimacy
 phylo_moi_random <- phylo_moi
 set.seed(44452962) 
 prs_ran <- sample(sample_data(phylo_moi)$PRS)
