@@ -131,13 +131,12 @@ results_df <- data.frame(gene=results.ours@rownames,
 
 # Now I want to put the taxonomy info on the 20 genes
 
-
-
-
-
-
-
-
+asv_taxonomy <- data.frame(cbind(t(plant_clim$otu_table), plant_clim$tax_table))
+asv_taxonomy$seqID <- rownames(plant_clim$tax_table)
+results_df$seqID <- asv_taxonomy[results_df[,1],]$seqID
+results_df$Genus <- asv_taxonomy[results_df[,1],]$Genus
+write.table(results_df, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_data.txt", sep= "\t", quote = FALSE, row.names = TRUE, col.names = TRUE)
+                                                   
 ###############
 # Below code was used for sanity checkin
 ###############                                                   
