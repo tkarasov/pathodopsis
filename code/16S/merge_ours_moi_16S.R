@@ -156,7 +156,7 @@ mat_sub <- mat[sig_hps_lps,]
 df <- as.data.frame(colData(rld)[,c("PRS","treatment.x")])
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pheatmap_moi_comparisons.pdf", useDingbats = FALSE, 
     font = "ArialMT")
-pheatmap(mat_sub, annotation_col=df)
+pheatmap(mat, scale = 'column', cluster_rows = F, annotation_col=df)
 dev.off()           
 
 
