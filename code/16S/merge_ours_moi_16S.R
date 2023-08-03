@@ -57,8 +57,9 @@ st.phylo <- phyloseq(otu_table(moi, taxa_are_rows = FALSE), sample_data(moi_meta
 st.phyo <-   prune_samples(sample_sums(st.phylo) >= 1000, st.phylo)
 
 # prune also for those that are found in at least 10% of samples
-who <- genefilter_sample(st.phyo, filterfun_sample(function(x) x > 5), A=0.1*nsamples(st.phyo))
-who_keep <-names(which(who==TRUE))
+who <- genefilter_sample(st.phyo, filterfun_sample(function(x)x > 5), A=0.1*nsamples(st.phyo))
+                                  
+who_keep <- names(which(who==TRUE))
 st.phylo <- prune_taxa( who_keep, st.phyo)
 colnames(plant_clim$otu_table) <- data.frame(OTU_clim$refseq)[,1]
 rownames(plant_clim$clim_data) <- plant_clim$clim_data$Sequence_ID
@@ -68,6 +69,7 @@ fin.moi <- phyloseq::prune_taxa(keep, st.phylo) #
 the_common_set <- colnames(otu_table(fin.moi))
 fin.ours <- prune_taxa(the_common_set, plant_phyl) #plant_phyl has 570 taxa and 454 samples
 #rownames(otu_table(fin.ours)) <- keep_seqid
+
 
 # We cannot reasonably test teh effect of genotype given that there is low replication (109 genotypes and 171 samples from Moi's experiment that pass the filter of enough reads)
 # instead let's see which of these ASVs are influenced by the environmental treatment. Then see which of these ASVs shows a latitudinal gradient. It's not clear to me what the zone variable is telling us but let's see...
@@ -79,6 +81,7 @@ fin.ours <- prune_taxa(the_common_set, plant_phyl) #plant_phyl has 570 taxa and 
 metadata <- metadata[-which(duplicated(metadata$Sequence_ID)),] 
 metadata2 <- metadata[1:1074,]#metadata[-which(metadata$Sequence_ID=="NA"),]
 rownames(metadata2) <- metadata2$Sequence_ID
+
 
 # Get subsetted otu table 
 subset_moi <- otu_table(fin.moi) #otu_table(st.phylo)[,which(colnames(otu_table(st.phylo)) %in% keep)]
@@ -136,6 +139,51 @@ asv_taxonomy$seqID <- rownames(plant_clim$tax_table)
 results_df$seqID <- asv_taxonomy[results_df[,1],]$seqID
 results_df$Genus <- asv_taxonomy[results_df[,1],]$Genus
 write.table(results_df, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/moi_data.txt", sep= "\t", quote = FALSE, row.names = TRUE, col.names = TRUE)
+                                                   
+
+################
+# Visualization of Moi data with pheatmap
+################
+
+dds = diagdds.moi_joint
+rownames(dds) <- results_df$seqID
+rld <- rlog(dds)
+sampleDists <- dist( t( assay(rld) ) )
+mat <- assay(rld)
+mat <- mat - rowMeans(mat)
+rownames(mat) <- results_df$seqID
+mat_sub <- mat[sig_hps_lps,]
+df <- as.data.frame(colData(rld)[,c("PRS","treatment.x")])
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pheatmap_moi_comparisons.pdf", useDingbats = FALSE, 
+    font = "ArialMT")
+pheatmap(mat_sub, annotation_col=df)
+dev.off()           
+
+
+
+
+
+sig_hps_lps <-  results_df$seqID[which (results_df$pval_moi_prs<=0.05)]
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/plotCounts.pdf", useDingbats = FALSE, 
+    font = "ArialMT")
+plotCounts(dds, gene="seq_12", intgroup=c("PRS"))
+dev.off()
+
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
+                                                   
                                                    
 ###############
 # Below code was used for sanity checkin
