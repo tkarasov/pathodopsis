@@ -147,7 +147,7 @@ write.table(results_df, "/ebio/abt6_projects9/pathodopsis_microbiomes/data/figur
 
 dds = diagdds.moi_joint
 rownames(dds) <- results_df$seqID
-rld <- rlog(dds)
+rld <- rlog(dds, blind = FALSE)
 sampleDists <- dist( t( assay(rld) ) )
 mat <- assay(rld)
 mat <- mat - rowMeans(mat)
@@ -159,9 +159,14 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pheatmap_moi
 pheatmap(mat, scale = 'column', cluster_rows = F, annotation_col=df)
 dev.off()           
 
+# 1) reorder the matrix based in the annotation
+sub_samp_ordered <- mat_sub[, order(df$PRS)]
 
-
-
+# 2) plot heatmap with no row clusters
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pheatmap_moi_comparisons_try.pdf", useDingbats = FALSE, 
+    font = "ArialMT")
+pheatmap::pheatmap(sub_samp_ordered, annotation_col = df[order(df$PRS),], cluster_cols = False)
+dev.off()
 
 sig_hps_lps <-  results_df$seqID[which (results_df$pval_moi_prs<=0.05)]
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/plotCounts.pdf", useDingbats = FALSE, 
