@@ -9,6 +9,7 @@ library(cowplot)
 library(vegan)
 library(microbiome)
 library(PathoStat)
+library(plotrix)
 
 
 # This script takes the seqtabs from our whole experiment and the Carnegie experiment from Moi's lab in 2023 and looks for overlap  in ASV's
@@ -174,11 +175,52 @@ pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/plotCounts.p
 plotCounts(dds, gene="seq_12", intgroup=c("PRS"))
 dev.off()
 
+###############
+# Plot individual significant ASVs
+###############                                                       
+#  https://rpubs.com/turnersd/plot-deseq-results-multipage-pdf    
+theme_set(theme_bw(base_size=14) + theme(strip.background = element_blank()))
+names(diagdds.moi_joint) <- names(dds)
+res.moi_joint <- results(diagdds.moi_joint, tidy=TRUE, contrast = list("PRS_lps_vs_hps", "PRSlps.treatment.xWatered"))%>%
+  arrange(padj, pvalue) %>%
+  tbl_df()
+# res <- results(dds, tidy=TRUE, contrast=c("dex", "trt", "untrt")) %>%
+# arrange(padj, pvalue) %>%
+# tbl_df()
+
+# Define the genes of interest.
+goi <- res.moi_joint$row[1:3]
+stopifnot(all(goi %in% names(dds)))
+goi
+
+tcounts <- t(log2((counts(dds[goi, ], normalized=TRUE, replaced=FALSE)+.5))) %>%
+  merge(colData(dds), ., by="row.names") %>%
+  gather(gene, expression, (ncol(.)-length(goi)+1):ncol(.))
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/plotCounts.pdf", useDingbats = FALSE, 
+    font = "ArialMT")
+ggplot(tcounts, aes(PRS, expression, fill=treatment.x)) + 
+  geom_boxplot() + 
+  facet_wrap(~gene, scales="free_y") + 
+  labs(x="Dexamethasone treatment", 
+       y="Expression (log normalized counts)", 
+       fill="(Some made \nup variable)", 
+       title="Top Results")
+dev.off()                                                   
                                                    
-                                                   
-                                                   
-                                                   
-                                                   
+# Calculate mean and sd per group
+ag <- do.call(data.frame, aggregate(expression ~ gene + PRS + treatment.x, tcounts, function(x) c(mean = mean(x), se = std.error(x))))
+
+pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/plotCounts.pdf", useDingbats = FALSE, 
+    font = "ArialMT")
+ggplot(ag, aes(PRS, expression, fill=treatment.x)) + 
+  geom_boxplot() + 
+  facet_wrap(~gene, scales="free_y") + 
+  labs(x="Treatment", 
+       y="Expression (log normalized counts)", 
+       fill="(Some made \nup variable)", 
+       title="Top Results")
+dev.off()                                      
                                                    
                                                    
                                                    
