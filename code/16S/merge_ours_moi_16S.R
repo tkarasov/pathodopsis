@@ -155,6 +155,8 @@ mat <- mat - rowMeans(mat)
 rownames(mat) <- results_df$seqID
 mat_sub <- mat[sig_hps_lps,]
 df <- as.data.frame(colData(rld)[,c("PRS","treatment.x")])
+
+# the following heatmaps are awful looking, no clear trends.                                                    
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/pheatmap_moi_comparisons.pdf", useDingbats = FALSE, 
     font = "ArialMT")
 pheatmap(mat, scale = 'column', cluster_rows = F, annotation_col=df)
@@ -197,6 +199,7 @@ tcounts <- t(log2((counts(dds[goi, ], normalized=TRUE, replaced=FALSE)+.5))) %>%
   merge(colData(dds), ., by="row.names") %>%
   gather(gene, expression, (ncol(.)-length(goi)+1):ncol(.))
 
+# these single ASV plots are also terrible (08/07/2023) 
 pdf("/ebio/abt6_projects9/pathodopsis_microbiomes/data/figures_misc/plotCounts.pdf", useDingbats = FALSE, 
     font = "ArialMT")
 ggplot(tcounts, aes(PRS, expression, fill=treatment.x)) + 
@@ -233,7 +236,7 @@ dev.off()
                                                    
                                                    
 ###############
-# Below code was used for sanity checkin
+# Below code was used for sanity checking and is largely deprecated
 ###############                                                   
 
 
