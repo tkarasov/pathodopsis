@@ -1,5 +1,5 @@
-###### THis script is meant to calculate the 
-
+###### THis script is meant to calculate the kinship matrix and variance explained by genotype
+cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/
 
 
 
