@@ -22,10 +22,9 @@ $gcta --reml --grm test --pheno phenotype3.txt --out test
 
 
 # Take the top 20 eigen vectors and include as covariates in the model for anova in vegan.
-
-
-
-# Now build pheno file to then feed to vegan for covariates. 
+# eigenvectors are in test.eigenvec. First two columns are individual and family ID. These can be fed into R with the other microbe data
+# now run vegan
+run_vegan_reml.R
 
 
 #  
