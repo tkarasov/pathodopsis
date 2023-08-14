@@ -10,8 +10,11 @@ eigen_vec <- read.table("test.eigenvec", row.names =1 )
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_clim.rds")
 load("/ebio/abt6_projects9/pathodopsis_microbiomes/data/OTU_clim.rds")
 clim_data <- plant_clim$clim_data
+otu_data <- plant_clim$otu_table
 clim_keep <- clim_data[clim_data$Sequence_ID %in% rownames(eigen_vec),]
+otu_keep <- otu_data[clim_data$Sequence_ID %in% rownames(eigen_vec),]
 clim_keep <- clim_keep[clim_keep$Sequence_ID %in% rownames(phenotype3),]
+otu_keep <- otu_keep[clim_keep$Sequence_ID %in% rownames(phenotype3),]
 eigen_vec1 <- eigen_vec[order(clim_keep$Sequence_ID),]
 eigen_vec1 <- cbind(eigen_vec1, clim_keep[, c("Lat", "Date", "PDSI", "cluster")])
 colnames(eigen_vec1)[1]="Sequence_ID"
@@ -34,4 +37,11 @@ mod<-cca(PCo1_loading~V3+V4+V5+V6+V7+Lat+PDSI,data =fin)
 ##testforaddingallenvironmentalvariables anova(mod,cca(dune~.,dune.env))
 
 # what I want to do is to measure the relative contributions of latitude, and other variables on the PCo1 and PCo2 loadings
+# next step is to do the bray curtis distance. then do adonis anova.
 
+
+
+distance_matrix <- dist(otu_clim$)
+ad <- adonis(PCo1_loading~V3+V4+V5+V6+V7+Lat+PDSI,data =fin, permutations = 999, method = "bray",
+       strata = NULL, contr.unordered = "contr.sum",
+       contr.ordered = "contr.poly"
