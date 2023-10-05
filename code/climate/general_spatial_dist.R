@@ -226,6 +226,49 @@ for(i in c(1:10)){
 full_plot <- plot_grid(plot1, plot2, plot3, 
                        plot4, plot5, plot6, 
                        plot7, plot8, plot9)
+                       
 #########################################
-# Correlation between A. thaliana and Capsella
+# Do the ASVs in the soil show latitudinal gradients?
 #########################################
+#I'm confused about some of the script above aprticularly the "True." I am going to rewrite the code
+
+lat_soil <- data.frame(t(apply((ath_all), 2, 
+                               function(x) run_lm(x, "rep1", "TRUE", colname="soil" ))))
+
+lat_ath <- data.frame(t(apply((ath_all), 2, 
+                               function(x) run_lm(x, "rep1", "TRUE", colname="soil" ))))
+
+
+#subset the phyloseq object to soil:
+GP_soil <- prune_samples(sample_data(GP_at15_all)$Host_Species=="Soil", GP_at15_all)
+# but GP_soil has a bunch of rep samples. Let's just remove them
+names=rownames(sample_data(GP_soil))
+GP_soil <- prune_samples(sample_data(GP_soil)$samples.out %in% names[!str_detect(names, "rep")], GP_soil)
+
+GP_ath <- prune_samples(sample_data(GP_at15_all)$Host_Species=="Ath", GP_at15_all)
+
+# Now look at the correlation between Latitude and the ASV for all of the ASVs in the matrix
+calc_lat <- function(phyl){
+  #calculates correlation between lat and each ASV
+  lat <- sample_data(phyl)$Lat
+  c <- apply(otu_table(phyl),2, cor_lat)
+  return(c)
+}
+
+cor_lat <- function(column){
+  c <- cor.test(lat, column)
+  return(c$p.value)
+  }
+
+lat <- sample_data(GP_ath)$Lat
+ath_lat <- calc_lat(GP_ath)
+lat <- sample_data(GP_soil)$Lat
+soil_lat <- calc_lat(GP_soil)
+
+lat_both <- data.frame(cbind(ath_lat, soil_lat))
+colnames(lat_both) <- c("Ath_lat", "Soil_lat")
+
+#are any of them shared?
+both_sig <- filter(lat_both, Ath_lat < 0.01 && Soil_lat < 0.01)
+
+
