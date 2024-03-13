@@ -1,7 +1,7 @@
 # The goal of this script is to take the vcf files and get fasta sequences from them. It's laborious and weirdly hard but the key is using a mix of bcf and vcftools
 #AT4G14400 is ACD6
 # position of most significant SNPs are 8295146, then also 8295218 and 8295231 and 8295845
-
+cd /ebio/abt6_projects9/pathodopsis_microbiomes/data/
 ############################################################
 # Sorting references
 ############################################################

@@ -50,11 +50,17 @@ genemodels = "/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/A
 #######################################################################
 # VCF Fst analysis
 #######################################################################
-fst_1_3 <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander_fst_1_3.weir.fst",
+#fst_1_3 <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/poolGVCF_gander_fst_1_3.weir.fst",
                       header = T)
-fst_1_3 <- unique(fst_1_3)
-fst_1_3_all<-read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_2.weir.fst",
+fst_1_3 <- read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_2_32024.weir.fst",
+                      header = T)
+#fst_1_3 <- unique(fst_1_3)
+#fst_1_3_all<-read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_2.weir.fst",
+#                        header = T)
+
+fst_1_3_all<-read.table("/ebio/abt6_projects9/pathodopsis_microbiomes/data/plant_genotype/fst_1_2_32024.weir.fst",
                         header = T)
+
 fst_1_3_all <- unique(fst_1_3_all)
 fst_1_3$new_pos <- c(1:dim(fst_1_3)[1])
 
